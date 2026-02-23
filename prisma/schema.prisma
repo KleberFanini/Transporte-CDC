@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Perfil {
+  admin
+  visualizador
+}
+
+enum Plataforma {
+  UBER
+  NOVE_NOVE
+}
+
+enum corridaStatus{
+  COMPLETA
+  CANCELADA
+  NAO_REALIZADA
+  EM_ANDAMENTO
+  DESCONHECIDO
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  perfil    Perfil     @default(visualizador)
+  criadoEm DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+}
+
+model Corrida{
+  id                        String      @id @default(uuid())
+
+  idCorridaPlataforma       String?  @unique
+
+  plataforma                Plataforma
+  status                    corridaStatus @default(DESCONHECIDO)
+
+  dataSolicitacaoLocal      DateTime?
+  dataChegadaLocal          DateTime?
+
+  detalhamentoDespesa       String?
+  grupo                     String?
+  programa                  String?
+  servico                   String?
+
+  nome                      String?
+  sobrenome                 String?
+  nomeCompleto              String?
+  
+  tipoTransacao             String?
+  valorTotal                Decimal?  @db.Decimal(10,2)
+
+  distanciaMetros           Int?
+  duracaoMinutos            Int?
+  
+  criadoEm                  DateTime @default(now())
+  atualizadoEm              DateTime @updatedAt
+
+  @@index([plataforma])
+  @@index([status])
+  @@index([dataSolicitacaoLocal])
+  @@index([nomeCompleto])
+}

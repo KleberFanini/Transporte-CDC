@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: cdc_postgres
+    environment:
+      POSTGRES_USER: cdc
+      POSTGRES_PASSWORD: cdc123
+      POSTGRES_DB: cdc_transporte
+    ports:
+      - "5432:5432"
+    volumes:
+      - cdc_pgdata:/var/lib/postgresql/data
+
+volumes:
+  cdc_pgdata:
