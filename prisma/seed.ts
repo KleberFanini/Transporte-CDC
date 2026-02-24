@@ -1,10 +1,12 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "../src/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-// @ts-ignore
 import { Pool } from "pg";
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL não foi carregada. Confere o .env na raiz do projeto.");
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
