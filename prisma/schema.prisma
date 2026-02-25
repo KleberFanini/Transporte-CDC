@@ -11,6 +11,11 @@ enum Perfil {
   visualizador
 }
 
+enum UsuarioStatus {
+  ATIVO
+  DESATIVADO
+}
+
 enum Plataforma {
   UBER
   NOVE_NOVE
@@ -30,6 +35,8 @@ model Usuario {
   email     String   @unique
   senha     String
   perfil    Perfil     @default(visualizador)
+  status      UsuarioStatus  @default(ATIVO)
+  
   criadoEm DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 }

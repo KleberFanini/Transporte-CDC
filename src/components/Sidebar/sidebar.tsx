@@ -9,8 +9,9 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  LogOut,
   User,
+  BarChart4,
+  Users
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -28,19 +29,31 @@ const menuItems = [
     title: "Dashboard",
     path: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "operacional", "financeiro", "visualizador"],
+    roles: ["admin", "visualizador"],
   },
   {
     title: "Operacional",
     path: "/operacional",
     icon: ClipboardList,
-    roles: ["admin", "operacional"],
+    roles: ["admin", "visualizador"],
   },
   {
     title: "Financeiro",
     path: "/financeiro",
     icon: DollarSign,
-    roles: ["admin", "financeiro"],
+    roles: ["admin", "visualizador"],
+  },
+  {
+    title: "Relatórios",
+    path: "/relatorios",
+    icon: BarChart4,
+    roles: ["admin", "visualizador"],
+  },
+  {
+    title: "Usuários",
+    path: "/usuarios",
+    icon: Users,
+    roles: ["admin"],
   },
   {
     title: "Administração",
@@ -97,8 +110,8 @@ export default function Sidebar() {
               <Image
                 src="/logo-transporte.png"
                 alt="CDC Transporte"
-                width={50}
-                height={50}
+                width={100}
+                height={100}
                 className="object-contain"
               />
             </div>

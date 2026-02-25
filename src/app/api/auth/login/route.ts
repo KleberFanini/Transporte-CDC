@@ -49,6 +49,7 @@ export async function POST(req: Request) {
                 email: true,
                 senha: true,
                 perfil: true,
+                status: true,
             }
         });
 
@@ -59,8 +60,16 @@ export async function POST(req: Request) {
                 { status: 401 }
             );
         }
+        // 5. Verifica se o usuário está ativo
 
-        // 5. Verifica senha
+        if (usuario.status !== "ATIVO") {
+            return NextResponse.json(
+                { error: "Usuário desativado. Entre em contato com o administrador." },
+                { status: 403 }
+            );
+        }
+
+        // 6. Verifica senha
         const senhaValida = await bcrypt.compare(senha, usuario.senha);
 
         if (!senhaValida) {
@@ -70,17 +79,17 @@ export async function POST(req: Request) {
             );
         }
 
-        // 6. Gera token
+        // 7. Gera token
         const token = await criarToken({
             sub: usuario.id,
             email: usuario.email,
             perfil: usuario.perfil,
         });
 
-        // 7. Remove senha do objeto de retorno
+        // 8. Remove senha do objeto de retorno
         const { senha: _, ...usuarioSemSenha } = usuario;
 
-        // 8. Retorna sucesso
+        // 9. Retorna sucesso
         return NextResponse.json(
             {
                 usuario: usuarioSemSenha,
@@ -97,7 +106,7 @@ export async function POST(req: Request) {
         );
 
     } catch (error) {
-        // 9. Log do erro para debug
+        // 10. Log do erro para debug
         console.error("Erro no login:", error);
 
         return NextResponse.json(

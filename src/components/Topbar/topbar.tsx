@@ -81,7 +81,7 @@ export default function Topbar({
 
     if (loading) {
         return (
-            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm">
+            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm margin-left">
                 <div className="flex items-center gap-3">
                     {showMenuButton && (
                         <div className="lg:hidden w-8 h-8 bg-gray-200 animate-pulse rounded" />
@@ -95,8 +95,9 @@ export default function Topbar({
 
     // Só renderiza o conteúdo se tiver usuário
     return (
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm sticky top-0 z-10">
-            {/* Lado esquerdo - Título e botão do menu mobile */}
+        // No return do componente Topbar
+        <header className="h-16 w-full bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm sticky top-0 z-10">
+            {/* Lado esquerdo */}
             <div className="flex items-center gap-3">
                 {showMenuButton && (
                     <button
@@ -112,7 +113,7 @@ export default function Topbar({
                 </h1>
             </div>
 
-            {/* Lado direito - Informações do usuário e logout */}
+            {/* Lado direito */}
             <div className="flex items-center gap-4">
                 {user && (
                     <>
@@ -133,7 +134,6 @@ export default function Topbar({
                                     </span>
                                 </div>
                             </div>
-
                             <Badge
                                 variant="outline"
                                 className={`${roleBadgeClass[user.perfil] || "bg-gray-100 text-gray-700"} font-medium`}
@@ -142,19 +142,13 @@ export default function Topbar({
                             </Badge>
                         </div>
 
-                        {/* Versão mobile simplificada */}
+                        {/* Versão mobile */}
                         <div className="sm:hidden flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-[#5D2A1A] flex items-center justify-center text-white">
                                 <span className="text-sm font-medium">
                                     {user.nome.charAt(0).toUpperCase()}
                                 </span>
                             </div>
-                            <Badge
-                                variant="outline"
-                                className={`${roleBadgeClass[user.perfil] || "bg-gray-100 text-gray-700"} font-medium text-xs`}
-                            >
-                                {roleLabels[user.perfil] || user.perfil}
-                            </Badge>
                         </div>
 
                         <Button
