@@ -79,13 +79,6 @@ export default function Sidebar() {
     setLoading(false);
   }, []);
 
-  const handleLogout = () => {
-    // Remove o token
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-    // Redireciona para login
-    router.push('/auth');
-  };
-
   // Filtra itens baseado no perfil do usuário
   const filteredItems = menuItems.filter((item) =>
     user ? item.roles.includes(user.perfil) : []
@@ -158,15 +151,6 @@ export default function Sidebar() {
 
         {/* Botões inferiores */}
         <div className="p-2 border-t border-white/10 space-y-1">
-          {/* Botão de Logout */}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/80 hover:bg-red-600/80 hover:text-white transition-colors"
-          >
-            <LogOut className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Sair</span>}
-          </button>
-
           {/* Toggle Sidebar */}
           <button
             onClick={() => setCollapsed(!collapsed)}
