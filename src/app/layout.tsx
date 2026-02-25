@@ -1,5 +1,6 @@
 import "./globals.css";
 import Sidebar from "@/components/Sidebar/sidebar";
+import Topbar from "@/components/Topbar/topbar";
 
 export default function RootLayout({
   children,
@@ -7,11 +8,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-br">
       <body
         className={`antialiased`}
       >
         <Sidebar />
+        <Topbar />
 
         {children}
       </body>
