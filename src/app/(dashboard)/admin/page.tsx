@@ -53,6 +53,7 @@ export default function AdminPage() {
     const [modalTipo, setModalTipo] = useState<"cadastro" | "edicao">("cadastro");
     const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [resetSenha, setResetSenha] = useState(false);
 
     const form = useForm<UsuarioFormValues>({
         resolver: zodResolver(usuarioSchema),
@@ -164,27 +165,37 @@ export default function AdminPage() {
         setLoading(true);
 
         try {
-            // Aqui você chamaria a API real
-            console.log("Editando usuário:", { ...data, id: usuarioEditando.id });
+            // Chamar a API para atualizar no banco
+            const response = await fetch(`/api/admin/usuarios/${usuarioEditando.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nome: data.nome,
+                    email: data.email,
+                    perfil: data.perfil,
+                    senha: resetSenha ? data.senha : undefined,
+                }),
+            });
 
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || "Erro ao editar usuário");
+            }
+
+            const usuarioAtualizado = await response.json();
+
+            // Atualizar o estado local com o usuário atualizado
             setUsuarios(prev =>
                 prev.map(u =>
-                    u.id === usuarioEditando.id
-                        ? {
-                            ...u,
-                            nome: data.nome,
-                            email: data.email,
-                            perfil: data.perfil,
-                            // Se tiver senha nova, você atualizaria aqui também
-                        }
-                        : u
+                    u.id === usuarioEditando.id ? usuarioAtualizado : u
                 )
             );
+
             toast.success("Usuário editado com sucesso");
             setModalAberto(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro:", error);
-            toast.error("Erro ao editar usuário");
+            toast.error(error.message || "Erro ao editar usuário");
         } finally {
             setLoading(false);
         }
@@ -493,6 +504,51 @@ export default function AdminPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {/* Checkbox para resetar senha */}
+                        <div className="flex items-center space-x-2 py-2">
+                            <input
+                                type="checkbox"
+                                id="resetSenha"
+                                checked={resetSenha}
+                                onChange={(e) => {
+                                    setResetSenha(e.target.checked);
+                                    if (!e.target.checked) {
+                                        editForm.setValue("senha", undefined);
+                                    }
+                                }}
+                                className="rounded border-gray-300"
+                            />
+                            <Label htmlFor="resetSenha" className="text-sm cursor-pointer">
+                                Resetar senha do usuário
+                            </Label>
+                        </div>
+
+                        {/* Campo de nova senha (só aparece se marcar o checkbox) */}
+                        {resetSenha && (
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-senha">Nova Senha</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="edit-senha"
+                                        type={showPassword ? "text" : "password"}
+                                        {...editForm.register("senha")}
+                                        className="bg-white"
+                                        placeholder="********"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                                {editForm.formState.errors.senha && (
+                                    <p className="text-sm text-red-500">{editForm.formState.errors.senha.message}</p>
+                                )}
+                            </div>
+                        )}
 
                         <DialogFooter>
                             <Button
