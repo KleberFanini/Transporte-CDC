@@ -124,16 +124,33 @@ export default function AdminPage() {
     };
 
     const handleToggleStatus = async (usuario: Usuario) => {
-        const novoStatus = usuario.status === "ATIVO" ? "DESATIVADO" : "ATIVO";
+        try {
+            const novoStatus = usuario.status === "ATIVO" ? "DESATIVADO" : "ATIVO";
 
-        // Atualiza localmente
-        setUsuarios(prev =>
-            prev.map(u =>
-                u.id === usuario.id ? { ...u, status: novoStatus } : u
-            )
-        );
+            // Chamar a API
+            const response = await fetch(`/api/admin/usuarios/${usuario.id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: novoStatus }),
+            });
 
-        toast.success(`Usuário ${novoStatus === "ATIVO" ? "ativado" : "desativado"} com sucesso`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || "Erro ao alterar status");
+            }
+
+            const usuarioAtualizado = await response.json();
+
+            // Atualizar o estado local
+            setUsuarios(prev =>
+                prev.map(u => u.id === usuario.id ? usuarioAtualizado : u)
+            );
+
+            toast.success(`Usuário ${novoStatus === "ATIVO" ? "ativado" : "desativado"} com sucesso`);
+        } catch (error: any) {
+            console.error("Erro:", error);
+            toast.error(error.message || "Erro ao alterar status");
+        }
     };
 
     const handleCadastro = async (data: UsuarioFormValues) => {

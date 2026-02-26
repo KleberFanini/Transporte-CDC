@@ -6,8 +6,16 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params; // 👈 AWAIT AQUI
+        const { id } = await params;
         const { status } = await request.json();
+
+        // Validar se o status é válido
+        if (!["ATIVO", "DESATIVADO"].includes(status)) {
+            return NextResponse.json(
+                { error: "Status inválido" },
+                { status: 400 }
+            );
+        }
 
         const usuario = await prisma.usuario.update({
             where: { id: Number(id) },
