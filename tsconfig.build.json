@@ -1,0 +1,8 @@
+{
+    "extends": "./tsconfig.json",
+    "exclude": [
+        "prisma/scripts/seed.ts",
+        "scripts/**/*.ts",
+        "prisma/**/*.ts"
+    ]
+}
