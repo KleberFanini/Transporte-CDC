@@ -72,7 +72,7 @@ export default function ImportarPage() {
         const headers = [
             'ID da Corrida', 'Plataforma', 'Data Solicitação', 'Hora Solicitação',
             'Data Chegada', 'Hora Chegada', 'Serviço', 'Programa', 'Grupo',
-            'Nome', 'Sobrenome', 'Nome Completo', 'Valor Total', 'Distância (km)',
+            'Nome', 'Sobrenome', 'Nome Completo', 'Email', 'Detalhamento da despesa', 'Valor Total', 'Distância (km)',
             'Duração (min)', 'Endereço Partida', 'Endereço Destino', 'Cidade', 'País', 'Status'
         ];
 
@@ -80,7 +80,7 @@ export default function ImportarPage() {
         const exemplo = [
             'TRIP001', 'UBER', '2024-01-15', '08:30',
             '2024-01-15', '08:45', 'UberX', 'ATITUDE CABO', 'Grupo A',
-            'João', 'Silva', 'João Silva', '32.50', '8.5',
+            'João', 'Silva', 'João Silva', 'joao.silva@cdc.org.br', 'Retorno do colaborador.', '32,50', '8,5',
             '15', 'Rua A, 123', 'Av. B, 456', 'Recife', 'Brasil', 'COMPLETA'
         ];
 

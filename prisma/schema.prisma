@@ -42,32 +42,44 @@ model Usuario {
 }
 
 model Corrida {
-  id                        String      @id @default(uuid())
-  idCorridaPlataforma       String?     @unique
-  plataforma                Plataforma
-  status                    corridaStatus @default(DESCONHECIDO)
+  id                  String    @id @default(uuid())
+  idCorridaPlataforma String?   @unique
+  plataforma          Plataforma
+  status              corridaStatus @default(DESCONHECIDO)
   
-  dataSolicitacao           DateTime? @db.Date  
-  horaSolicitacao           String?     
-  dataChegada               DateTime? @db.Date  
-  horaChegada               String?     
+  // Datas e horários
+  dataSolicitacao     DateTime? @db.Date
+  horaSolicitacao     String?
+  dataChegada         DateTime? @db.Date
+  horaChegada         String?
   
-  servico                   String?
-  programa                  String?
-  grupo                     String?
-  nome                      String?
-  sobrenome                 String?
-  nomeCompleto              String?
-  valorTotal                Decimal?    @db.Decimal(10,2)
-  distanciaMetros           Int?
-  duracaoMinutos            Int?
-  enderecoPartida           String?
-  enderecoDestino           String?
-  cidade                    String?
-  pais                      String?
+  // Informações da viagem
+  servico             String?
+  programa            String?
+  grupo               String?
   
-  criadoEm                  DateTime @default(now())
-  atualizadoEm              DateTime @updatedAt
+  // Funcionário
+  nome                String?
+  sobrenome           String?
+  nomeCompleto        String?
+  email               String? 
+  
+  // Detalhamento da despesa
+  detalhamentoDespesa String?
+  
+  // Valores e métricas
+  valorTotal          Decimal?  @db.Decimal(10,2)
+  distanciaMetros     Int?
+  duracaoMinutos      Int?
+  
+  // Endereços
+  enderecoPartida     String?
+  enderecoDestino     String?
+  cidade              String?
+  pais                String?
+  
+  criadoEm            DateTime @default(now())
+  atualizadoEm        DateTime @updatedAt
 
   @@index([plataforma])
   @@index([status])

@@ -11,6 +11,8 @@ export interface PlanilhaCorrida {
     nome: string;
     sobrenome: string;
     nomeCompleto: string;
+    email: string;
+    detalhamentoDespesa: string;
     valorTotal: number;
     distanciaKm: number;
     duracaoMin: number;

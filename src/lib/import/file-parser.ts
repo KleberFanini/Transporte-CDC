@@ -132,6 +132,8 @@ export class FileParser {
             nome: row['Nome'] || row['nome'] || row['First Name'] || '',
             sobrenome: row['Sobrenome'] || row['sobrenome'] || row['Last Name'] || '',
             nomeCompleto: row['Nome Completo'] || row['nome_completo'] || '',
+            email: row['Email'] || row['email'] || row['E-mail'] || '',
+            detalhamentoDespesa: row['Detalhamento da despesa'] || row['detalhamento_despesa'] || row['Expense Memo'] || '',
             valorTotal: this.parseFloatBr(row['Valor Total'] || row['valor_total'] || row['Amount']),
             distanciaKm: this.parseFloatBr(row['Distância (km)'] || row['distancia_km'] || row['Distance']),
             duracaoMin: Math.round(this.parseFloatBr(row['Duração (min)'] || row['duracao_min'] || row['Duration'])),
