@@ -16,9 +16,7 @@ export async function GET(request: Request) {
 
         const viagens = await prisma.corrida.findMany({
             take: limit,
-            orderBy: {
-                dataSolicitacao: 'desc',
-            },
+            orderBy: { dataSolicitacao: 'desc' },
         });
 
         const dados = viagens.map((v) => ({
