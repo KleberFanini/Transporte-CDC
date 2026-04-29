@@ -7,7 +7,7 @@ const querySchema = z.object({
   plataforma: z.enum(["UBER", "NOVE_NOVE"]).optional(),
   status: z.enum(["FINALIZADA", "CANCELADA", "NAO_REALIZADA", "EM_ANDAMENTO", "DESCONHECIDO"]).optional(),
   nome: z.string().min(1).optional(),
-  de: z.string().optional(), 
+  de: z.string().optional(),
   ate: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
@@ -35,16 +35,16 @@ export async function GET(req: Request) {
   }
 
   if (de || ate) {
-    where.dataSolicitacaoLocal = {};
-    if (de) where.dataSolicitacaoLocal.gte = new Date(`${de}T00:00:00`);
-    if (ate) where.dataSolicitacaoLocal.lte = new Date(`${ate}T23:59:59`);
+    where.dataSolicitacao = {};
+    if (de) where.dataSolicitacao.gte = new Date(`${de}T00:00:00`);
+    if (ate) where.dataSolicitacao.lte = new Date(`${ate}T23:59:59`);
   }
 
   const [total, corridas] = await Promise.all([
     prisma.corrida.count({ where }),
     prisma.corrida.findMany({
       where,
-      orderBy: { dataSolicitacaoLocal: "desc" },
+      orderBy: { dataSolicitacao: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
