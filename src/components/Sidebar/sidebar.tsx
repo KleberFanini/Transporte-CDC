@@ -11,7 +11,8 @@ import {
   ChevronRight,
   User,
   BarChart4,
-  Users
+  Users,
+  Upload
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -61,6 +62,12 @@ const menuItems = [
     icon: Shield,
     roles: ["admin"],
   },
+  {
+    title: "Importar",
+    path: "/importar",
+    icon: Upload,
+    roles: ["admin"],
+  }
 ];
 
 export default function Sidebar() {

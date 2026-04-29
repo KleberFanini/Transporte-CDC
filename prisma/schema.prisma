@@ -41,37 +41,36 @@ model Usuario {
   atualizadoEm DateTime @updatedAt
 }
 
-model Corrida{
+model Corrida {
   id                        String      @id @default(uuid())
-
-  idCorridaPlataforma       String?  @unique
-
+  idCorridaPlataforma       String?     @unique
   plataforma                Plataforma
   status                    corridaStatus @default(DESCONHECIDO)
-
-  dataSolicitacaoLocal      DateTime?
-  dataChegadaLocal          DateTime?
-
-  detalhamentoDespesa       String?
-  grupo                     String?
-  programa                  String?
+  
+  dataSolicitacao           DateTime? @db.Date  
+  horaSolicitacao           String?     
+  dataChegada               DateTime? @db.Date  
+  horaChegada               String?     
+  
   servico                   String?
-
+  programa                  String?
+  grupo                     String?
   nome                      String?
   sobrenome                 String?
   nomeCompleto              String?
-  
-  tipoTransacao             String?
-  valorTotal                Decimal?  @db.Decimal(10,2)
-
+  valorTotal                Decimal?    @db.Decimal(10,2)
   distanciaMetros           Int?
   duracaoMinutos            Int?
+  enderecoPartida           String?
+  enderecoDestino           String?
+  cidade                    String?
+  pais                      String?
   
   criadoEm                  DateTime @default(now())
   atualizadoEm              DateTime @updatedAt
 
   @@index([plataforma])
   @@index([status])
-  @@index([dataSolicitacaoLocal])
+  @@index([dataSolicitacao])
   @@index([nomeCompleto])
 }

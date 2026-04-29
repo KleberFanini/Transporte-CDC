@@ -1,4 +1,3 @@
-// src/lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
@@ -18,7 +17,7 @@ const pool = globalForPrisma.pgPool ?? new Pool({
   // Adicione estas configurações para melhor performance
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 30000,
 });
 
 if (process.env.NODE_ENV !== "production") {
