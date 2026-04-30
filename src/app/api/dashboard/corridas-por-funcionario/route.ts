@@ -5,6 +5,10 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const nomeCompleto = searchParams.get('nomeCompleto');
+        const dataInicioStr = searchParams.get('dataInicio');
+        const dataFimStr = searchParams.get('dataFim');
+
+        console.log('📊 Parâmetros recebidos:', { nomeCompleto, dataInicioStr, dataFimStr });
 
         if (!nomeCompleto) {
             return NextResponse.json(
@@ -13,19 +17,34 @@ export async function GET(request: Request) {
             );
         }
 
+        const where: any = {
+            nomeCompleto: nomeCompleto,
+        };
+
+        if (dataInicioStr) {
+            const dataInicio = new Date(dataInicioStr);
+            dataInicio.setHours(0, 0, 0, 0);
+            where.dataSolicitacao = { gte: dataInicio };
+        }
+
+        if (dataFimStr) {
+            const dataFim = new Date(dataFimStr);
+            dataFim.setHours(23, 59, 59, 999);
+            where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+        }
+
+        console.log('🔍 Where clause:', JSON.stringify(where));
+
         console.log(`🔍 Buscando corridas para: ${nomeCompleto}`);
 
         const corridas = await prisma.corrida.findMany({
-            where: {
-                nomeCompleto: nomeCompleto,
-            },
-            orderBy: {
-                dataSolicitacao: 'desc',
-            },
+            where,
+            orderBy: { dataSolicitacao: 'desc' },
             select: {
                 id: true,
                 dataSolicitacao: true,
                 horaSolicitacao: true,
+                horaChegada: true,
                 enderecoPartida: true,
                 enderecoDestino: true,
                 servico: true,
@@ -41,6 +60,7 @@ export async function GET(request: Request) {
             id: c.id,
             dataSolicitacao: c.dataSolicitacao ? c.dataSolicitacao.toISOString() : '',
             horaSolicitacao: c.horaSolicitacao || '',
+            horaChegada: c.horaChegada || '',
             enderecoPartida: c.enderecoPartida || '',
             enderecoDestino: c.enderecoDestino || '',
             servico: c.servico || '',

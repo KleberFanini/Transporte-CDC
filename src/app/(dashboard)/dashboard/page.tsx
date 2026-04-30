@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DateFilterModal } from "@/components/DateFilterModal";
+import { PlatformFilter } from "@/components/PlatformFilter";
 
 // Tipos para os dados do banco
 interface DashboardResumo {
@@ -80,6 +81,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [filtroGrupo, setFiltroGrupo] = useState("todos");
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
+    const [plataforma, setPlataforma] = useState("todos");
 
     // Estados para datas (inicialmente vazias = mostrar tudo)
     const [dataInicio, setDataInicio] = useState("");
@@ -125,6 +127,7 @@ export default function DashboardPage() {
             const params = new URLSearchParams();
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
+            if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
 
             const url = `/api/dashboard/resumo?${params.toString()}`;
             console.log('📡 Buscando dados:', url);
@@ -170,7 +173,7 @@ export default function DashboardPage() {
     // Recarregar quando datas ou filtro mudar
     useEffect(() => {
         carregarDados();
-    }, [dataInicio, dataFim, filtroGrupo]);
+    }, [dataInicio, dataFim, filtroGrupo, plataforma]);
 
     if (loading) {
         return (
@@ -192,6 +195,7 @@ export default function DashboardPage() {
 
                 {/* Botões de filtro */}
                 <div className="flex flex-wrap gap-2 items-center">
+                    <PlatformFilter value={plataforma} onChange={setPlataforma} />
                     {/* Indicador de filtro ativo */}
                     {(dataInicio || dataFim) && (
                         <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
@@ -203,7 +207,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         onClick={handleAbrirFiltro}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 hover:bg-[#bdb8ae] hover:text-gray-900 focus:bg-[#bdb8ae] focus:text-gray-900 data-[highlighted]:bg-[#bdb8ae] data-[highlighted]:text-gray-900"
                     >
                         <Filter className="h-4 w-4" />
                         Filtrar por Data

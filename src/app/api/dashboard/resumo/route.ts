@@ -6,12 +6,22 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
+        const plataforma = searchParams.get('plataforma');
+        const grupo = searchParams.get('grupo');
 
         console.log('📅 Data Início:', dataInicioStr);
         console.log('📅 Data Fim:', dataFimStr);
 
         // Construir o where dinamicamente
         const where: any = {};
+
+        if (plataforma && plataforma !== 'todos') {
+            where.plataforma = plataforma;
+        }
+
+        if (grupo && grupo !== 'todos' && grupo !== '') {
+            where.grupo = grupo;
+        }
 
         if (dataInicioStr) {
             const dataInicio = new Date(dataInicioStr);

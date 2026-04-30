@@ -7,15 +7,14 @@ import { Button } from "@/components/ui/button";
 import {
     Download,
     TrendingUp,
-    PieChart as PieChartIcon,
     BarChart3,
     MapPin,
     Car,
     Users,
-    FileText,
     Loader2,
     Calendar,
     DollarSign,
+    Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -35,6 +34,8 @@ import {
     AreaChart,
     Area,
 } from "recharts";
+import { PlatformFilter } from "@/components/PlatformFilter";
+import { DateFilterModal } from "@/components/DateFilterModal";
 
 // Cores para os gráficos
 const COLORS = [
@@ -52,12 +53,6 @@ interface ProgramasData {
     nome: string;
     valor: number;
     viagens: number;
-}
-
-interface ServicosData {
-    tipo: string;
-    viagens: number;
-    valor: number;
 }
 
 interface CidadesData {
@@ -88,44 +83,82 @@ interface DespesaDetalhe {
 export default function RelatoriosPage() {
     const [loading, setLoading] = useState(true);
     const [programas, setProgramas] = useState<ProgramasData[]>([]);
-    const [servicos, setServicos] = useState<ServicosData[]>([]);
     const [cidades, setCidades] = useState<CidadesData[]>([]);
     const [ranking, setRanking] = useState<RankingFuncionario[]>([]);
     const [evolucaoMensal, setEvolucaoMensal] = useState<EvolucaoMensal[]>([]);
     const [despesasDetalhe, setDespesasDetalhe] = useState<DespesaDetalhe[]>([]);
+
+    // Filtros
+    const [plataforma, setPlataforma] = useState("todos");
+    const [dataInicio, setDataInicio] = useState("");
+    const [dataFim, setDataFim] = useState("");
+    const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
+    const [tempDataInicio, setTempDataInicio] = useState("");
+    const [tempDataFim, setTempDataFim] = useState("");
+
+    // Construir URL com parâmetros
+    const buildUrl = (baseUrl: string) => {
+        const params = new URLSearchParams();
+        if (plataforma && plataforma !== 'todos') {
+            params.append('plataforma', plataforma);
+        }
+        if (dataInicio) {
+            params.append('dataInicio', dataInicio);
+        }
+        if (dataFim) {
+            params.append('dataFim', dataFim);
+        }
+        const queryString = params.toString();
+        return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    };
+
+    // Abrir modal de filtro
+    const handleAbrirFiltro = () => {
+        setTempDataInicio(dataInicio);
+        setTempDataFim(dataFim);
+        setModalFiltroAberto(true);
+    };
+
+    // Aplicar filtro
+    const handleAplicarFiltro = (novaDataInicio: string, novaDataFim: string) => {
+        setDataInicio(novaDataInicio);
+        setDataFim(novaDataFim);
+    };
+
+    // Resetar filtro
+    const handleResetFiltro = () => {
+        setDataInicio("");
+        setDataFim("");
+        toast.info("Filtro de data removido. Mostrando todos os dados.");
+    };
 
     // Carregar dados
     const carregarDados = async () => {
         setLoading(true);
         try {
             // Programas
-            const programasRes = await fetch("/api/dashboard/programas");
+            const programasRes = await fetch(buildUrl("/api/dashboard/programas"));
             const programasData = await programasRes.json();
             setProgramas(programasData);
 
-            // Serviços
-            const servicosRes = await fetch("/api/dashboard/servicos");
-            const servicosData = await servicosRes.json();
-            setServicos(servicosData);
-
             // Cidades
-            const cidadesRes = await fetch("/api/dashboard/cidades");
+            const cidadesRes = await fetch(buildUrl("/api/dashboard/cidades"));
             const cidadesData = await cidadesRes.json();
             setCidades(cidadesData);
 
             // Ranking de funcionários
-            const rankingRes = await fetch("/api/dashboard/funcionarios");
+            const rankingRes = await fetch(buildUrl("/api/dashboard/funcionarios"));
             const rankingData = await rankingRes.json();
             const top10 = rankingData.slice(0, 10);
             setRanking(top10);
 
             // Evolução Mensal
-            const evolucaoRes = await fetch("/api/dashboard/evolucao-mensal");
+            const evolucaoRes = await fetch(buildUrl("/api/dashboard/evolucao-mensal"));
             const evolucaoData = await evolucaoRes.json();
             setEvolucaoMensal(evolucaoData);
 
             // Detalhamento de Despesas
-            const despesasRes = await fetch("/api/dashboard/detalhamento-despesas");
+            const despesasRes = await fetch(buildUrl("/api/dashboard/detalhamento-despesas"));
             const despesasData = await despesasRes.json();
             setDespesasDetalhe(despesasData);
         } catch (error) {
@@ -138,7 +171,7 @@ export default function RelatoriosPage() {
 
     useEffect(() => {
         carregarDados();
-    }, []);
+    }, [plataforma, dataInicio, dataFim]);
 
     const exportarCSV = (dados: any[], nomeArquivo: string, headers: string[]) => {
         const csvRows = [headers.join(",")];
@@ -170,6 +203,9 @@ export default function RelatoriosPage() {
         );
     }
 
+    // Ordenar programas por valor
+    const programasOrdenados = [...programas].sort((a, b) => b.valor - a.valor).slice(0, 10);
+
     return (
         <div className="space-y-6 p-6">
             {/* Header */}
@@ -177,21 +213,59 @@ export default function RelatoriosPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Relatórios</h1>
                     <p className="text-gray-600">Análise de dados de mobilidade</p>
+                    {(dataInicio || dataFim) && (
+                        <p className="text-sm text-blue-600 mt-1">
+                            Período: {dataInicio || 'início'} até {dataFim || 'hoje'}
+                        </p>
+                    )}
                 </div>
-                <Button
-                    className="bg-[#5D2A1A] hover:bg-[#4A2214] text-white"
-                    onClick={() => exportarCSV(programas, "relatorio_programas", ["nome", "valor", "viagens"])}
-                >
-                    <Download className="mr-2 h-4 w-4" />
-                    Exportar Dados
-                </Button>
+                <div className="flex flex-wrap gap-4 items-center">
+                    <PlatformFilter value={plataforma} onChange={setPlataforma} />
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAbrirFiltro}
+                        className="flex items-center gap-2 hover:bg-[#bdb8ae] hover:text-gray-900 focus:bg-[#bdb8ae] focus:text-gray-900 data-[highlighted]:bg-[#bdb8ae] data-[highlighted]:text-gray-900"
+                    >
+                        <Filter className="h-4 w-4" />
+                        Filtrar por Data
+                    </Button>
+
+                    {(dataInicio || dataFim) && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResetFiltro}
+                            className="text-red-600 hover:text-red-700"
+                        >
+                            Limpar Filtro
+                        </Button>
+                    )}
+
+                    <Button
+                        className="bg-[#5D2A1A] hover:bg-[#4A2214] text-white"
+                        onClick={() => exportarCSV(programas, "relatorio_programas", ["nome", "valor", "viagens"])}
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar Dados
+                    </Button>
+                </div>
             </div>
+
+            {/* Modal de Filtro */}
+            <DateFilterModal
+                open={modalFiltroAberto}
+                onOpenChange={setModalFiltroAberto}
+                onApply={handleAplicarFiltro}
+                dataInicioInicial={tempDataInicio}
+                dataFimInicial={tempDataFim}
+            />
 
             {/* Tabs de relatórios */}
             <Tabs defaultValue="programas" className="space-y-4">
-                <TabsList className="grid w-full max-w-3xl grid-cols-5">
+                <TabsList className="grid w-full max-w-3xl grid-cols-4">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
-                    <TabsTrigger value="servicos">Serviços</TabsTrigger>
                     <TabsTrigger value="cidades">Cidades</TabsTrigger>
                     <TabsTrigger value="ranking">Ranking</TabsTrigger>
                     <TabsTrigger value="evolucao">Evolução</TabsTrigger>
@@ -199,125 +273,44 @@ export default function RelatoriosPage() {
 
                 {/* Aba - Programas */}
                 <TabsContent value="programas">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <PieChartIcon className="h-5 w-5" />
-                                    Gastos por Programa
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={320}>
-                                    <PieChart>
-                                        <Pie
-                                            data={programas}
-                                            dataKey="valor"
-                                            nameKey="nome"
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={100}
-                                            label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                                            labelLine={true}
-                                        >
-                                            {programas.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <BarChart3 className="h-5 w-5" />
-                                    Ranking de Programas
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={320}>
-                                    <BarChart data={programas.slice(0, 10)} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
-                                        <YAxis type="category" dataKey="nome" width={100} />
-                                        <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
-                                        <Bar dataKey="valor" fill="#5D2A1A" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
-
-                {/* Aba - Serviços */}
-                <TabsContent value="servicos">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <PieChartIcon className="h-5 w-5" />
-                                    Distribuição por Serviço
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={320}>
-                                    <PieChart>
-                                        <Pie
-                                            data={servicos}
-                                            dataKey="viagens"
-                                            nameKey="tipo"
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={100}
-                                            label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                                            labelLine={true}
-                                        >
-                                            {servicos.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Detalhamento por Serviço</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {servicos.map((servico, index) => {
-                                        const totalViagens = servicos.reduce((acc, s) => acc + s.viagens, 0);
-                                        const percentual = (servico.viagens / totalViagens) * 100;
-                                        return (
-                                            <div key={servico.tipo} className="space-y-1">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="font-medium">{servico.tipo}</span>
-                                                    <span className="text-gray-600">
-                                                        {servico.viagens} viagens • R$ {servico.valor.toLocaleString('pt-BR')}
-                                                    </span>
-                                                </div>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full rounded-full"
-                                                        style={{
-                                                            width: `${percentual}%`,
-                                                            backgroundColor: COLORS[index % COLORS.length],
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BarChart3 className="h-5 w-5" />
+                                Ranking de Programas (Top 10)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart
+                                    data={programasOrdenados}
+                                    layout="vertical"
+                                    margin={{ left: 100, right: 30, top: 20, bottom: 20 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis
+                                        type="number"
+                                        tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                                        label={{ value: 'Valor (R$ milhares)', position: 'bottom', offset: 0 }}
+                                    />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="nome"
+                                        width={120}
+                                        tick={{ fontSize: 11 }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`}
+                                        contentStyle={{ backgroundColor: '#fff', borderRadius: '8px' }}
+                                    />
+                                    <Bar dataKey="valor" fill="#5D2A1A" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                            {programas.length === 0 && (
+                                <p className="text-center text-gray-500 py-8">Nenhum programa encontrado</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 {/* Aba - Cidades */}
@@ -340,6 +333,9 @@ export default function RelatoriosPage() {
                                         <Bar dataKey="valor" fill="#5D2A1A" />
                                     </BarChart>
                                 </ResponsiveContainer>
+                                {cidades.length === 0 && (
+                                    <p className="text-center text-gray-500 py-8">Nenhuma cidade encontrada</p>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -349,7 +345,7 @@ export default function RelatoriosPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {cidades.slice(0, 5).map((cidade, index) => (
+                                    {cidades.slice(0, 5).map((cidade) => (
                                         <div key={cidade.nome} className="flex justify-between items-center border-b pb-2">
                                             <div>
                                                 <p className="font-medium">{cidade.nome}</p>
@@ -423,6 +419,9 @@ export default function RelatoriosPage() {
                                         <Line type="monotone" dataKey="valor" stroke="#5D2A1A" strokeWidth={2} dot={{ r: 4 }} />
                                     </LineChart>
                                 </ResponsiveContainer>
+                                {evolucaoMensal.length === 0 && (
+                                    <p className="text-center text-gray-500 py-8">Nenhum dado encontrado</p>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -444,6 +443,9 @@ export default function RelatoriosPage() {
                                         <Area type="monotone" dataKey="viagens" fill="#8B4513" fillOpacity={0.3} stroke="#5D2A1A" />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                                {evolucaoMensal.length === 0 && (
+                                    <p className="text-center text-gray-500 py-8">Nenhum dado encontrado</p>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
@@ -460,7 +462,6 @@ export default function RelatoriosPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Gráfico de Pizza - Detalhamento */}
                         <div>
                             <h3 className="text-lg font-semibold mb-4">Distribuição por Tipo de Despesa</h3>
                             <ResponsiveContainer width="100%" height={300}>
@@ -482,9 +483,11 @@ export default function RelatoriosPage() {
                                     <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
                                 </PieChart>
                             </ResponsiveContainer>
+                            {despesasDetalhe.length === 0 && (
+                                <p className="text-center text-gray-500 py-8">Nenhuma despesa encontrada</p>
+                            )}
                         </div>
 
-                        {/* Tabela de Detalhamento */}
                         <div>
                             <h3 className="text-lg font-semibold mb-4">Despesas por Categoria</h3>
                             <div className="overflow-x-auto">
@@ -498,7 +501,7 @@ export default function RelatoriosPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {despesasDetalhe.map((despesa, index) => (
+                                        {despesasDetalhe.map((despesa) => (
                                             <tr key={despesa.tipo} className="border-b hover:bg-gray-50">
                                                 <td className="py-3 px-4 font-medium">{despesa.tipo}</td>
                                                 <td className="py-3 px-4 text-right">{despesa.quantidade}</td>

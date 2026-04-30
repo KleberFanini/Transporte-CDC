@@ -23,6 +23,7 @@ import {
     Search,
     Eye,
     Loader2,
+    Filter,
     Calendar,
     MapPin,
     Clock,
@@ -33,8 +34,8 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateFilterModal } from "@/components/DateFilterModal";
 
-// Tipos
 interface Funcionario {
     id: string;
     nome: string;
@@ -54,6 +55,7 @@ interface CorridaDetalhe {
     id: string;
     dataSolicitacao: string;
     horaSolicitacao: string;
+    horaChegada: string;
     enderecoPartida: string;
     enderecoDestino: string;
     servico: string;
@@ -70,11 +72,22 @@ export default function UsuariosPage() {
     const [corridasDetalhe, setCorridasDetalhe] = useState<CorridaDetalhe[]>([]);
     const [loadingDetalhe, setLoadingDetalhe] = useState(false);
 
+    const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
+    const [dataInicio, setDataInicio] = useState("");
+    const [dataFim, setDataFim] = useState("");
+    const [tempDataInicio, setTempDataInicio] = useState("");
+    const [tempDataFim, setTempDataFim] = useState("");
+
     // Carregar funcionários
     const carregarFuncionarios = async () => {
         try {
             setLoading(true);
-            const response = await fetch("/api/dashboard/funcionarios");
+            const params = new URLSearchParams();
+            if (dataInicio) params.append('dataInicio', dataInicio);
+            if (dataFim) params.append('dataFim', dataFim);
+
+            const url = `/api/dashboard/funcionarios?${params.toString()}`;
+            const response = await fetch(url);
             if (!response.ok) throw new Error("Erro ao carregar funcionários");
             const data = await response.json();
             setFuncionarios(data);
@@ -88,7 +101,7 @@ export default function UsuariosPage() {
 
     useEffect(() => {
         carregarFuncionarios();
-    }, []);
+    }, [dataInicio, dataFim]);
 
     // Carregar detalhes das corridas do funcionário
     const carregarDetalhesCorridas = async (funcionario: Funcionario) => {
@@ -97,7 +110,12 @@ export default function UsuariosPage() {
         setModalAberto(true);
 
         try {
-            const response = await fetch(`/api/dashboard/corridas-por-funcionario?nomeCompleto=${encodeURIComponent(funcionario.nomeCompleto)}`);
+            const params = new URLSearchParams();
+            params.append('nomeCompleto', funcionario.nomeCompleto);
+            if (dataInicio) params.append('dataInicio', dataInicio);
+            if (dataFim) params.append('dataFim', dataFim);
+
+            const response = await fetch(`/api/dashboard/corridas-por-funcionario?${params.toString()}`);
             if (!response.ok) throw new Error("Erro ao carregar corridas");
             const data = await response.json();
             setCorridasDetalhe(data);
@@ -112,6 +130,23 @@ export default function UsuariosPage() {
 
     const handleVerDetalhes = (funcionario: Funcionario) => {
         carregarDetalhesCorridas(funcionario);
+    };
+
+    const handleAbrirFiltro = () => {
+        setTempDataInicio(dataInicio);
+        setTempDataFim(dataFim);
+        setModalFiltroAberto(true);
+    };
+
+    const handleAplicarFiltro = (novaDataInicio: string, novaDataFim: string) => {
+        setDataInicio(novaDataInicio);
+        setDataFim(novaDataFim);
+    };
+
+    const handleResetFiltro = () => {
+        setDataInicio("");
+        setDataFim("");
+        toast.info("Filtro removido. Mostrando todos os dados.");
     };
 
     // Filtrar funcionários
@@ -135,8 +170,38 @@ export default function UsuariosPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Usuários</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">Funcionários</h1>
                     <p className="text-gray-600">Lista de funcionários e seus gastos</p>
+                </div>
+
+                {/* Botões de filtro */}
+                <div className="flex flex-wrap gap-2 items-center">
+                    {(dataInicio || dataFim) && (
+                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            Filtro ativo
+                        </span>
+                    )}
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAbrirFiltro}
+                        className="flex items-center gap-2 hover:bg-[#bdb8ae] hover:text-gray-900 focus:bg-[#bdb8ae] focus:text-gray-900 data-[highlighted]:bg-[#bdb8ae] data-[highlighted]:text-gray-900"
+                    >
+                        <Filter className="h-4 w-4" />
+                        Filtrar por Data
+                    </Button>
+
+                    {(dataInicio || dataFim) && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResetFiltro}
+                            className="text-red-600 hover:text-red-700"
+                        >
+                            Limpar Filtro
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -153,11 +218,17 @@ export default function UsuariosPage() {
                 </div>
             </CardContent>
 
+            {/* Modal de Filtro */}
+            <DateFilterModal
+                open={modalFiltroAberto}
+                onOpenChange={setModalFiltroAberto}
+                onApply={handleAplicarFiltro}
+                dataInicioInicial={tempDataInicio}
+                dataFimInicial={tempDataFim}
+            />
+
             {/* Tabela de funcionários */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Funcionários</CardTitle>
-                </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -217,7 +288,7 @@ export default function UsuariosPage() {
 
             {/* Modal de detalhes das corridas */}
             <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-                <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto bg-gray-50">
+                <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto bg-gray-50">
                     <DialogHeader>
                         <DialogTitle className="text-xl">
                             Corridas de {funcionarioSelecionado?.nomeCompleto}
@@ -257,7 +328,7 @@ export default function UsuariosPage() {
                                                 {format(new Date(corrida.dataSolicitacao), "dd/MM/yyyy", { locale: ptBR })}
                                             </TableCell>
                                             <TableCell className="font-mono text-sm">
-                                                {corrida.horaSolicitacao || "-"}
+                                                {corrida.horaSolicitacao + " - " + corrida.horaChegada || "-"}
                                             </TableCell>
                                             <TableCell className="max-w-[200px] truncate" title={corrida.enderecoPartida}>
                                                 {corrida.enderecoPartida || "-"}

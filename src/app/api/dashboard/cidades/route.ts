@@ -6,11 +6,15 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
+        const plataforma = searchParams.get('plataforma');
 
-        // Construir where
         const where: any = {
             cidade: { not: null },
         };
+
+        if (plataforma && plataforma !== 'todos') {
+            where.plataforma = plataforma;
+        }
 
         if (dataInicioStr) {
             const dataInicio = new Date(dataInicioStr);

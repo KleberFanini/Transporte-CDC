@@ -7,18 +7,19 @@ export async function GET(request: Request) {
         const grupo = searchParams.get('grupo');
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
+        const plataforma = searchParams.get('plataforma');
 
-        // Construir where
         const where: any = {
             nomeCompleto: { not: null },
         };
 
-        // Filtro por grupo
+        if (plataforma && plataforma !== 'todos') {
+            where.plataforma = plataforma;
+        }
+
         if (grupo && grupo !== '') {
             where.grupo = grupo;
         }
-
-        // Filtro por data
         if (dataInicioStr) {
             const dataInicio = new Date(dataInicioStr);
             dataInicio.setHours(0, 0, 0, 0);

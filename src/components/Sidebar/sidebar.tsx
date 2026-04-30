@@ -33,26 +33,14 @@ const menuItems = [
     roles: ["admin", "visualizador"],
   },
   {
-    title: "Operacional",
-    path: "/operacional",
-    icon: ClipboardList,
-    roles: ["admin", "visualizador"],
-  },
-  {
-    title: "Financeiro",
-    path: "/financeiro",
-    icon: DollarSign,
-    roles: ["admin", "visualizador"],
-  },
-  {
     title: "Relatórios",
     path: "/relatorios",
     icon: BarChart4,
     roles: ["admin", "visualizador"],
   },
   {
-    title: "Usuários",
-    path: "/usuarios",
+    title: "Funcionários",
+    path: "/funcionarios",
     icon: Users,
     roles: ["admin"],
   },

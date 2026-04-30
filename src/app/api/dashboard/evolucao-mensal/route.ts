@@ -1,12 +1,41 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url);
+        const dataInicioStr = searchParams.get('dataInicio');
+        const dataFimStr = searchParams.get('dataFim');
+        const plataforma = searchParams.get('plataforma');
+
+        // Construir where dinamicamente
+        const where: any = {
+            dataSolicitacao: { not: null },
+        };
+
+        // Filtro por plataforma
+        if (plataforma && plataforma !== 'todos') {
+            where.plataforma = plataforma;
+        }
+
+        // Filtro por data início
+        if (dataInicioStr) {
+            const dataInicio = new Date(dataInicioStr);
+            dataInicio.setHours(0, 0, 0, 0);
+            where.dataSolicitacao = { ...where.dataSolicitacao, gte: dataInicio };
+        }
+
+        // Filtro por data fim
+        if (dataFimStr) {
+            const dataFim = new Date(dataFimStr);
+            dataFim.setHours(23, 59, 59, 999);
+            where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+        }
+
+        console.log('📊 Evolução Mensal - Where:', JSON.stringify(where));
+
         const corridas = await prisma.corrida.findMany({
-            where: {
-                dataSolicitacao: { not: null },
-            },
+            where,
             select: {
                 dataSolicitacao: true,
                 valorTotal: true,
@@ -33,9 +62,11 @@ export async function GET() {
 
         const dados = Array.from(mesesMap.values());
 
+        console.log(`📊 ${dados.length} meses encontrados`);
+
         return NextResponse.json(dados);
     } catch (error) {
-        console.error('Erro ao buscar evolução mensal:', error);
+        console.error('❌ Erro ao buscar evolução mensal:', error);
         return NextResponse.json({ error: 'Erro ao buscar dados' }, { status: 500 });
     }
 }
