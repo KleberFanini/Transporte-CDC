@@ -5,9 +5,12 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const grupo = searchParams.get('grupo');
+        const programa = searchParams.get('programa');
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
         const plataforma = searchParams.get('plataforma');
+
+        console.log('📊 Parâmetros recebidos:', { grupo, programa, dataInicioStr, dataFimStr, plataforma });
 
         const where: any = {
             nomeCompleto: { not: null },
@@ -20,6 +23,11 @@ export async function GET(request: Request) {
         if (grupo && grupo !== '') {
             where.grupo = grupo;
         }
+
+        if (programa && programa !== 'todos' && programa !== '') {
+            where.programa = programa;
+        }
+
         if (dataInicioStr) {
             const dataInicio = new Date(dataInicioStr);
             dataInicio.setHours(0, 0, 0, 0);

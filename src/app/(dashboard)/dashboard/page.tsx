@@ -77,17 +77,24 @@ interface Cidade {
     valor: number;
 }
 
+// Opções para os selects
+interface SelectOption {
+    value: string;
+    label: string;
+}
+
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
-    const [filtroGrupo, setFiltroGrupo] = useState("todos");
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [plataforma, setPlataforma] = useState("todos");
 
-    // Estados para datas (inicialmente vazias = mostrar tudo)
+    // Filtros APENAS para a aba de Funcionários
+    const [filtroGrupo, setFiltroGrupo] = useState("todos");
+    const [filtroPrograma, setFiltroPrograma] = useState("todos");
+
+    // Estados para datas (global)
     const [dataInicio, setDataInicio] = useState("");
     const [dataFim, setDataFim] = useState("");
-
-    // Estados temporários para o modal
     const [tempDataInicio, setTempDataInicio] = useState("");
     const [tempDataFim, setTempDataFim] = useState("");
 
@@ -99,6 +106,38 @@ export default function DashboardPage() {
     const [cidades, setCidades] = useState<Cidade[]>([]);
     const [servicos, setServicos] = useState<{ tipo: string; viagens: number; valor: number }[]>([]);
 
+    // Opções para os selects
+    const [gruposOptions, setGruposOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os grupos" }]);
+    const [programasOptions, setProgramasOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os programas" }]);
+
+    // Carregar opções de grupos e programas
+    const carregarOpcoes = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (dataInicio) params.append('dataInicio', dataInicio);
+            if (dataFim) params.append('dataFim', dataFim);
+            if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
+
+            // Carregar grupos distintos
+            const gruposRes = await fetch(`/api/dashboard/grupos?${params.toString()}`);
+            const gruposData = await gruposRes.json();
+            setGruposOptions([
+                { value: "todos", label: "Todos os grupos" },
+                ...gruposData.map((g: string) => ({ value: g, label: g }))
+            ]);
+
+            // Carregar programas
+            const programasRes = await fetch(`/api/dashboard/programas-lista?${params.toString()}`);
+            const programasData = await programasRes.json();
+            setProgramasOptions([
+                { value: "todos", label: "Todos os programas" },
+                ...programasData.map((p: string) => ({ value: p, label: p }))
+            ]);
+        } catch (error) {
+            console.error("Erro ao carregar opções:", error);
+        }
+    };
+
     // Abrir modal com valores atuais
     const handleAbrirFiltro = () => {
         setTempDataInicio(dataInicio);
@@ -106,34 +145,30 @@ export default function DashboardPage() {
         setModalFiltroAberto(true);
     };
 
-    // Aplicar filtro (fechar modal e recarregar com novas datas)
+    // Aplicar filtro de data
     const handleAplicarFiltro = (novaDataInicio: string, novaDataFim: string) => {
         setDataInicio(novaDataInicio);
         setDataFim(novaDataFim);
     };
 
-    // Resetar filtro (limpar datas)
+    // Resetar filtro de data
     const handleResetFiltro = () => {
         setDataInicio("");
         setDataFim("");
-        toast.info("Filtro removido. Mostrando todos os dados.");
+        toast.info("Filtro de data removido. Mostrando todos os dados.");
     };
 
-    // Carregar dados do dashboard
+    // Carregar dados do dashboard (exceto funcionários)
     const carregarDados = async () => {
         setLoading(true);
         try {
-            // Construir URL com parâmetros de data (se houver)
             const params = new URLSearchParams();
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
 
-            const url = `/api/dashboard/resumo?${params.toString()}`;
-            console.log('📡 Buscando dados:', url);
-
             // Carregar resumo
-            const resumoRes = await fetch(url);
+            const resumoRes = await fetch(`/api/dashboard/resumo?${params.toString()}`);
             const resumoData = await resumoRes.json();
             setResumo(resumoData);
 
@@ -141,11 +176,6 @@ export default function DashboardPage() {
             const programasRes = await fetch(`/api/dashboard/programas?${params.toString()}`);
             const programasData = await programasRes.json();
             setProgramas(programasData);
-
-            // Carregar funcionários
-            const funcionariosRes = await fetch(`/api/dashboard/funcionarios?grupo=${filtroGrupo === "todos" ? "" : filtroGrupo}&${params.toString()}`);
-            const funcionariosData = await funcionariosRes.json();
-            setFuncionarios(funcionariosData);
 
             // Carregar últimas viagens
             const viagensRes = await fetch(`/api/dashboard/ultimas-viagens?limit=10&${params.toString()}`);
@@ -170,10 +200,34 @@ export default function DashboardPage() {
         }
     };
 
-    // Recarregar quando datas ou filtro mudar
+    // Carregar funcionários (com filtros específicos)
+    const carregarFuncionarios = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (dataInicio) params.append('dataInicio', dataInicio);
+            if (dataFim) params.append('dataFim', dataFim);
+            if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
+            if (filtroGrupo && filtroGrupo !== 'todos') params.append('grupo', filtroGrupo);
+            if (filtroPrograma && filtroPrograma !== 'todos') params.append('programa', filtroPrograma);
+
+            const funcionariosRes = await fetch(`/api/dashboard/funcionarios?${params.toString()}`);
+            const funcionariosData = await funcionariosRes.json();
+            setFuncionarios(funcionariosData);
+        } catch (error) {
+            console.error("Erro ao carregar funcionários:", error);
+        }
+    };
+
+    // Recarregar quando filtros mudarem
     useEffect(() => {
         carregarDados();
-    }, [dataInicio, dataFim, filtroGrupo, plataforma]);
+        carregarOpcoes();
+    }, [dataInicio, dataFim, plataforma]);
+
+    // Recarregar funcionários quando os filtros específicos mudarem
+    useEffect(() => {
+        carregarFuncionarios();
+    }, [dataInicio, dataFim, plataforma, filtroGrupo, filtroPrograma]);
 
     if (loading) {
         return (
@@ -186,17 +240,16 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-6 p-6">
-            {/* Header com título e filtros */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Mobilidade CDC</h1>
                     <p className="text-gray-600">Gestão de deslocamentos de funcionários</p>
                 </div>
 
-                {/* Botões de filtro */}
                 <div className="flex flex-wrap gap-2 items-center">
                     <PlatformFilter value={plataforma} onChange={setPlataforma} />
-                    {/* Indicador de filtro ativo */}
+
                     {(dataInicio || dataFim) && (
                         <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
                             Filtro ativo
@@ -207,7 +260,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         onClick={handleAbrirFiltro}
-                        className="flex items-center gap-2 hover:bg-[#bdb8ae] hover:text-gray-900 focus:bg-[#bdb8ae] focus:text-gray-900 data-[highlighted]:bg-[#bdb8ae] data-[highlighted]:text-gray-900"
+                        className="flex items-center gap-2"
                     >
                         <Filter className="h-4 w-4" />
                         Filtrar por Data
@@ -231,7 +284,7 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Modal de Filtro */}
+            {/* Modal de Filtro de Data */}
             <DateFilterModal
                 open={modalFiltroAberto}
                 onOpenChange={setModalFiltroAberto}
@@ -309,7 +362,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Restante do dashboard permanece igual... */}
+            {/* Tabs */}
             <Tabs defaultValue="programas" className="space-y-4">
                 <TabsList className="grid w-full max-w-2xl grid-cols-4">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
@@ -357,20 +410,40 @@ export default function DashboardPage() {
                     </Card>
                 </TabsContent>
 
-                {/* Aba de Funcionários */}
+                {/* Aba de Funcionários - COM FILTROS DE GRUPO E PROGRAMA */}
                 <TabsContent value="funcionarios">
                     <Card>
                         <CardHeader>
                             <CardTitle>Funcionários</CardTitle>
-                            <div className="flex gap-2">
-                                <select
-                                    className="border rounded-lg px-3 py-1 text-sm"
-                                    value={filtroGrupo}
-                                    onChange={(e) => setFiltroGrupo(e.target.value)}
-                                >
-                                    <option value="todos">Todos os grupos</option>
-                                    {/* Opções de grupos podem ser adicionadas dinamicamente */}
-                                </select>
+                            <div className="flex flex-wrap gap-4 mt-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">Grupo:</span>
+                                    <select
+                                        className="border rounded-lg px-3 py-1 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer"
+                                        value={filtroGrupo}
+                                        onChange={(e) => setFiltroGrupo(e.target.value)}
+                                    >
+                                        {gruposOptions.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">Programa:</span>
+                                    <select
+                                        className="border rounded-lg px-3 py-1 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer"
+                                        value={filtroPrograma}
+                                        onChange={(e) => setFiltroPrograma(e.target.value)}
+                                    >
+                                        {programasOptions.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -379,12 +452,13 @@ export default function DashboardPage() {
                                     <thead>
                                         <tr className="border-b">
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Nome Completo</th>
+                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Email</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Grupo</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Programa</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Serviço</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Cidade</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Viagens</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
+                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Viagens</th>
+                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -393,20 +467,22 @@ export default function DashboardPage() {
                                                 <td className="py-3 px-4">
                                                     <div>
                                                         <p className="font-medium">{func.nomeCompleto}</p>
-                                                        <p className="text-xs text-gray-500">{func.email}</p>
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-sm">{func.grupo}</td>
+                                                <td className="py-3 px-4 text-sm">{func.email}</td>
+                                                <td className="py-3 px-4 text-sm">{func.grupo || "-"}</td>
                                                 <td className="py-3 px-4 text-sm">{func.programa}</td>
                                                 <td className="py-3 px-4 text-sm">{func.servico}</td>
                                                 <td className="py-3 px-4 text-sm">{func.cidade}</td>
-                                                <td className="py-3 px-4 text-sm font-medium">{func.totalViagens}</td>
-                                                <td className="py-3 px-4 text-sm font-medium">R$ {func.valorTotal.toFixed(2)}</td>
+                                                <td className="py-3 px-4 text-right font-medium">{func.totalViagens}</td>
+                                                <td className="py-3 px-4 text-right font-medium">
+                                                    R$ {func.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                </td>
                                             </tr>
                                         ))}
                                         {funcionarios.length === 0 && (
                                             <tr>
-                                                <td colSpan={7} className="text-center py-8 text-gray-500">
+                                                <td colSpan={8} className="text-center py-8 text-gray-500">
                                                     Nenhum funcionário encontrado
                                                 </td>
                                             </tr>
@@ -465,74 +541,74 @@ export default function DashboardPage() {
                                 </table>
                             </div>
                         </CardContent>
-                    </Card>
-                </TabsContent>
 
-                {/* Aba de Cidades */}
-                <TabsContent value="cidades">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Distribuição por Cidade</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {cidades.map((cidade) => (
-                                    <div key={cidade.nome} className="p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <MapPin className="h-5 w-5 text-[#5D2A1A]" />
-                                            <h3 className="font-medium">{cidade.nome}</h3>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <p className="text-gray-600">Viagens</p>
-                                                <p className="font-medium">{cidade.viagens}</p>
+                        {/* Aba de Cidades */}
+                        <TabsContent value="cidades">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Distribuição por Cidade</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {cidades.map((cidade) => (
+                                            <div key={cidade.nome} className="p-4 border rounded-lg">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <MapPin className="h-5 w-5 text-[#5D2A1A]" />
+                                                    <h3 className="font-medium">{cidade.nome}</h3>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                                    <div>
+                                                        <p className="text-gray-600">Viagens</p>
+                                                        <p className="font-medium">{cidade.viagens}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-600">Valor</p>
+                                                        <p className="font-medium">R$ {cidade.valor.toLocaleString('pt-BR')}</p>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-gray-600">Valor</p>
-                                                <p className="font-medium">R$ {cidade.valor.toLocaleString('pt-BR')}</p>
-                                            </div>
-                                        </div>
+                                        ))}
+                                        {cidades.length === 0 && (
+                                            <p className="text-center text-gray-500 py-8 col-span-2">Nenhuma cidade encontrada</p>
+                                        )}
                                     </div>
-                                ))}
-                                {cidades.length === 0 && (
-                                    <p className="text-center text-gray-500 py-8 col-span-2">Nenhuma cidade encontrada</p>
-                                )}
-                            </div>
-                        </CardContent>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                     </Card>
+
+                    {/* Cards de Informações Adicionais */}
+                    {resumo && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Card>
+                                <CardContent className="p-4 flex items-center gap-3">
+                                    <Clock className="h-8 w-8 text-blue-500" />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Tempo Médio</p>
+                                        <p className="text-lg font-bold">
+                                            {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
+                                        </p>
+                                        <p className="text-xs text-gray-500">por viagem</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardContent className="p-4 flex items-center gap-3">
+                                    <MapPin className="h-8 w-8 text-green-500" />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Distância Média</p>
+                                        <p className="text-lg font-bold">
+                                            {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
+                                        </p>
+                                        <p className="text-xs text-gray-500">por viagem</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </TabsContent>
             </Tabs>
-
-            {/* Cards de Informações Adicionais */}
-            {resumo && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <Clock className="h-8 w-8 text-blue-500" />
-                            <div>
-                                <p className="text-sm text-gray-600">Tempo Médio</p>
-                                <p className="text-lg font-bold">
-                                    {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
-                                </p>
-                                <p className="text-xs text-gray-500">por viagem</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <MapPin className="h-8 w-8 text-green-500" />
-                            <div>
-                                <p className="text-sm text-gray-600">Distância Média</p>
-                                <p className="text-lg font-bold">
-                                    {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
-                                </p>
-                                <p className="text-xs text-gray-500">por viagem</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
         </div>
     );
 }
