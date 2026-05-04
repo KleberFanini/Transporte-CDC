@@ -264,11 +264,12 @@ export default function RelatoriosPage() {
 
             {/* Tabs de relatórios */}
             <Tabs defaultValue="programas" className="space-y-4">
-                <TabsList className="grid w-full max-w-3xl grid-cols-4">
+                <TabsList className="grid w-full max-w-3xl grid-cols-5">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
                     <TabsTrigger value="cidades">Cidades</TabsTrigger>
                     <TabsTrigger value="ranking">Ranking</TabsTrigger>
                     <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+                    <TabsTrigger value="detalhamento">Detalhamento</TabsTrigger>
                 </TabsList>
 
                 {/* Aba - Programas */}
@@ -450,74 +451,76 @@ export default function RelatoriosPage() {
                         </Card>
                     </div>
                 </TabsContent>
-            </Tabs>
 
-            {/* Seção de Detalhamento de Despesas */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
-                        Detalhamento de Despesas
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Distribuição por Tipo de Despesa</h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={despesasDetalhe}
-                                        dataKey="valor"
-                                        nameKey="tipo"
-                                        cx="50%"
-                                        cy="50%"
-                                        outerRadius={100}
-                                        label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                                        labelLine={true}
-                                    >
-                                        {despesasDetalhe.map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            {despesasDetalhe.length === 0 && (
-                                <p className="text-center text-gray-500 py-8">Nenhuma despesa encontrada</p>
-                            )}
-                        </div>
+                <TabsContent value="detalhamento">
+                    {/* Seção de Detalhamento de Despesas */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <DollarSign className="h-5 w-5" />
+                                Detalhamento de Despesas
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4">Distribuição por Tipo de Despesa</h3>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={despesasDetalhe}
+                                                dataKey="valor"
+                                                nameKey="tipo"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                                                labelLine={true}
+                                            >
+                                                {despesasDetalhe.map((_, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    {despesasDetalhe.length === 0 && (
+                                        <p className="text-center text-gray-500 py-8">Nenhuma despesa encontrada</p>
+                                    )}
+                                </div>
 
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Despesas por Categoria</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Categoria</th>
-                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Quantidade</th>
-                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
-                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">%</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {despesasDetalhe.map((despesa) => (
-                                            <tr key={despesa.tipo} className="border-b hover:bg-gray-50">
-                                                <td className="py-3 px-4 font-medium">{despesa.tipo}</td>
-                                                <td className="py-3 px-4 text-right">{despesa.quantidade}</td>
-                                                <td className="py-3 px-4 text-right">
-                                                    R$ {despesa.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                </td>
-                                                <td className="py-3 px-4 text-right">{despesa.porcentagem.toFixed(1)}%</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4">Despesas por Categoria</h3>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="border-b">
+                                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Categoria</th>
+                                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Quantidade</th>
+                                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
+                                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">%</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {despesasDetalhe.map((despesa) => (
+                                                    <tr key={despesa.tipo} className="border-b hover:bg-gray-50">
+                                                        <td className="py-3 px-4 font-medium">{despesa.tipo}</td>
+                                                        <td className="py-3 px-4 text-right">{despesa.quantidade}</td>
+                                                        <td className="py-3 px-4 text-right">
+                                                            R$ {despesa.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                        <td className="py-3 px-4 text-right">{despesa.porcentagem.toFixed(1)}%</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* Rodapé */}
             <div className="text-center text-xs text-gray-500 py-4">

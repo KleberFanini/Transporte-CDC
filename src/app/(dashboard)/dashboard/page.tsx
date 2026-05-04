@@ -366,6 +366,37 @@ export default function DashboardPage() {
                 </div>
             )}
 
+            {/* Cards de Informações Adicionais */}
+            {resumo && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <Clock className="h-8 w-8 text-blue-500" />
+                            <div>
+                                <p className="text-sm text-gray-600">Tempo Médio</p>
+                                <p className="text-lg font-bold">
+                                    {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
+                                </p>
+                                <p className="text-xs text-gray-500">por viagem</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <MapPin className="h-8 w-8 text-green-500" />
+                            <div>
+                                <p className="text-sm text-gray-600">Distância Média</p>
+                                <p className="text-lg font-bold">
+                                    {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
+                                </p>
+                                <p className="text-xs text-gray-500">por viagem</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
             {/* Tabs */}
             <Tabs defaultValue="programas" className="space-y-4">
                 <TabsList className="grid w-full max-w-2xl grid-cols-3">
@@ -385,7 +416,8 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {programas.map((programa) => {
+                                {/* 👇 ORDENAR DO MAIOR PARA O MENOR VALOR */}
+                                {[...programas].sort((a, b) => b.valor - a.valor).map((programa) => {
                                     const total = programas.reduce((acc, p) => acc + p.valor, 0);
                                     const percentual = total > 0 ? (programa.valor / total) * 100 : 0;
                                     return (
@@ -527,37 +559,6 @@ export default function DashboardPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-
-            {/* Cards de Informações Adicionais */}
-            {resumo && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <Clock className="h-8 w-8 text-blue-500" />
-                            <div>
-                                <p className="text-sm text-gray-600">Tempo Médio</p>
-                                <p className="text-lg font-bold">
-                                    {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
-                                </p>
-                                <p className="text-xs text-gray-500">por viagem</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <MapPin className="h-8 w-8 text-green-500" />
-                            <div>
-                                <p className="text-sm text-gray-600">Distância Média</p>
-                                <p className="text-lg font-bold">
-                                    {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
-                                </p>
-                                <p className="text-xs text-gray-500">por viagem</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
         </div>
     );
 }
