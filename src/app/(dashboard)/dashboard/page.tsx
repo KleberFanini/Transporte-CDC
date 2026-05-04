@@ -441,11 +441,8 @@ export default function DashboardPage() {
                                     <thead>
                                         <tr className="border-b">
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Nome Completo</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Email</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Grupo</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Programa</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Serviço</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Cidade</th>
                                             <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Viagens</th>
                                             <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
                                         </tr>
@@ -458,11 +455,8 @@ export default function DashboardPage() {
                                                         <p className="font-medium">{func.nomeCompleto}</p>
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-sm">{func.email}</td>
                                                 <td className="py-3 px-4 text-sm">{func.grupo || "-"}</td>
                                                 <td className="py-3 px-4 text-sm">{func.programa}</td>
-                                                <td className="py-3 px-4 text-sm">{func.servico}</td>
-                                                <td className="py-3 px-4 text-sm">{func.cidade}</td>
                                                 <td className="py-3 px-4 text-right font-medium">{func.totalViagens}</td>
                                                 <td className="py-3 px-4 text-right font-medium">
                                                     R$ {func.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
