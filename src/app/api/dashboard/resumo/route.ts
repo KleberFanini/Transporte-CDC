@@ -8,9 +8,13 @@ export async function GET(request: Request) {
         const dataFimStr = searchParams.get('dataFim');
         const plataforma = searchParams.get('plataforma');
         const grupo = searchParams.get('grupo');
+        const programa = searchParams.get('programa');
 
         console.log('📅 Data Início:', dataInicioStr);
         console.log('📅 Data Fim:', dataFimStr);
+        console.log('🎯 Plataforma:', plataforma);
+        console.log('👥 Grupo:', grupo);
+        console.log('📋 Programa:', programa);
 
         // Construir o where dinamicamente
         const where: any = {};
@@ -21,6 +25,10 @@ export async function GET(request: Request) {
 
         if (grupo && grupo !== 'todos' && grupo !== '') {
             where.grupo = grupo;
+        }
+
+        if (programa && programa !== 'todos' && programa !== '') {
+            where.programa = programa;
         }
 
         if (dataInicioStr) {

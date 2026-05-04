@@ -71,12 +71,6 @@ interface UltimaViagem {
     valor: number;
 }
 
-interface Cidade {
-    nome: string;
-    viagens: number;
-    valor: number;
-}
-
 // Opções para os selects
 interface SelectOption {
     value: string;
@@ -87,10 +81,10 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [plataforma, setPlataforma] = useState("todos");
+    const [programaGlobal, setProgramaGlobal] = useState("todos"); // 👈 FILTRO GLOBAL DE PROGRAMA
 
-    // Filtros APENAS para a aba de Funcionários
+    // Filtro APENAS para a aba de Funcionários (apenas grupo)
     const [filtroGrupo, setFiltroGrupo] = useState("todos");
-    const [filtroPrograma, setFiltroPrograma] = useState("todos");
 
     // Estados para datas (global)
     const [dataInicio, setDataInicio] = useState("");
@@ -103,7 +97,6 @@ export default function DashboardPage() {
     const [programas, setProgramas] = useState<Programa[]>([]);
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [ultimasViagens, setUltimasViagens] = useState<UltimaViagem[]>([]);
-    const [cidades, setCidades] = useState<Cidade[]>([]);
     const [servicos, setServicos] = useState<{ tipo: string; viagens: number; valor: number }[]>([]);
 
     // Opções para os selects
@@ -117,6 +110,7 @@ export default function DashboardPage() {
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
+            if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
 
             // Carregar grupos distintos
             const gruposRes = await fetch(`/api/dashboard/grupos?${params.toString()}`);
@@ -138,27 +132,27 @@ export default function DashboardPage() {
         }
     };
 
-    // Abrir modal com valores atuais
     const handleAbrirFiltro = () => {
         setTempDataInicio(dataInicio);
         setTempDataFim(dataFim);
         setModalFiltroAberto(true);
     };
 
-    // Aplicar filtro de data
     const handleAplicarFiltro = (novaDataInicio: string, novaDataFim: string) => {
         setDataInicio(novaDataInicio);
         setDataFim(novaDataFim);
     };
 
-    // Resetar filtro de data
     const handleResetFiltro = () => {
         setDataInicio("");
         setDataFim("");
-        toast.info("Filtro de data removido. Mostrando todos os dados.");
+        setPlataforma("todos");
+        setProgramaGlobal("todos");
+        setFiltroGrupo("todos");
+        toast.info("Todos os filtros foram removidos.");
     };
 
-    // Carregar dados do dashboard (exceto funcionários)
+    // Carregar dados do dashboard (com filtro global de programa)
     const carregarDados = async () => {
         setLoading(true);
         try {
@@ -166,6 +160,7 @@ export default function DashboardPage() {
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
+            if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
 
             // Carregar resumo
             const resumoRes = await fetch(`/api/dashboard/resumo?${params.toString()}`);
@@ -182,11 +177,6 @@ export default function DashboardPage() {
             const viagensData = await viagensRes.json();
             setUltimasViagens(viagensData);
 
-            // Carregar dados por cidade
-            const cidadesRes = await fetch(`/api/dashboard/cidades?${params.toString()}`);
-            const cidadesData = await cidadesRes.json();
-            setCidades(cidadesData);
-
             // Carregar serviços
             const servicosRes = await fetch(`/api/dashboard/servicos?${params.toString()}`);
             const servicosData = await servicosRes.json();
@@ -200,15 +190,15 @@ export default function DashboardPage() {
         }
     };
 
-    // Carregar funcionários (com filtros específicos)
+    // Carregar funcionários (apenas com filtro de grupo, não programa)
     const carregarFuncionarios = async () => {
         try {
             const params = new URLSearchParams();
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
+            if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
             if (filtroGrupo && filtroGrupo !== 'todos') params.append('grupo', filtroGrupo);
-            if (filtroPrograma && filtroPrograma !== 'todos') params.append('programa', filtroPrograma);
 
             const funcionariosRes = await fetch(`/api/dashboard/funcionarios?${params.toString()}`);
             const funcionariosData = await funcionariosRes.json();
@@ -218,16 +208,14 @@ export default function DashboardPage() {
         }
     };
 
-    // Recarregar quando filtros mudarem
     useEffect(() => {
         carregarDados();
         carregarOpcoes();
-    }, [dataInicio, dataFim, plataforma]);
+    }, [dataInicio, dataFim, plataforma, programaGlobal]);
 
-    // Recarregar funcionários quando os filtros específicos mudarem
     useEffect(() => {
         carregarFuncionarios();
-    }, [dataInicio, dataFim, plataforma, filtroGrupo, filtroPrograma]);
+    }, [dataInicio, dataFim, plataforma, programaGlobal, filtroGrupo]);
 
     if (loading) {
         return (
@@ -241,47 +229,63 @@ export default function DashboardPage() {
     return (
         <div className="space-y-6 p-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Mobilidade CDC</h1>
-                    <p className="text-gray-600">Gestão de deslocamentos de funcionários</p>
-                </div>
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Mobilidade CDC</h1>
+                        <p className="text-gray-600">Gestão de deslocamentos de funcionários</p>
+                    </div>
 
-                <div className="flex flex-wrap gap-2 items-center">
-                    <PlatformFilter value={plataforma} onChange={setPlataforma} />
-
-                    {(dataInicio || dataFim) && (
-                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                            Filtro ativo
-                        </span>
-                    )}
-
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAbrirFiltro}
-                        className="flex items-center gap-2"
-                    >
-                        <Filter className="h-4 w-4" />
-                        Filtrar por Data
-                    </Button>
-
-                    {(dataInicio || dataFim) && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleResetFiltro}
-                            className="text-red-600 hover:text-red-700"
+                    {/* Filtros */}
+                    <div className="flex flex-wrap gap-3 items-center">
+                        <PlatformFilter value={plataforma} onChange={setPlataforma} />
+                        <select
+                            className="border rounded-lg px-3 py-2 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer"
+                            value={programaGlobal}
+                            onChange={(e) => setProgramaGlobal(e.target.value)}
                         >
-                            Limpar Filtro
-                        </Button>
-                    )}
+                            {programasOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
 
-                    <Button className="bg-[#5D2A1A] text-white rounded-lg px-4 py-2 text-sm flex items-center gap-2 hover:bg-[#4A2214]">
-                        <Download className="h-4 w-4" />
-                        Exportar
-                    </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAbrirFiltro}
+                            className="flex items-center gap-2"
+                        >
+                            <Filter className="h-4 w-4" />
+                            Filtrar por Data
+                        </Button>
+
+                        {(dataInicio || dataFim || plataforma !== 'todos' || programaGlobal !== 'todos' || filtroGrupo !== 'todos') && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleResetFiltro}
+                                className="text-red-600 hover:text-red-700"
+                            >
+                                Limpar Filtros
+                            </Button>
+                        )}
+
+                        {(dataInicio || dataFim) && (
+                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                Período: {dataInicio || 'início'} a {dataFim || 'hoje'}
+                            </span>
+                        )}
+
+                        <Button className="bg-[#5D2A1A] text-white rounded-lg px-4 py-2 text-sm flex items-center gap-2 hover:bg-[#4A2214]">
+                            <Download className="h-4 w-4" />
+                            Exportar
+                        </Button>
+                    </div>
                 </div>
+
+
             </div>
 
             {/* Modal de Filtro de Data */}
@@ -364,11 +368,10 @@ export default function DashboardPage() {
 
             {/* Tabs */}
             <Tabs defaultValue="programas" className="space-y-4">
-                <TabsList className="grid w-full max-w-2xl grid-cols-4">
+                <TabsList className="grid w-full max-w-2xl grid-cols-3">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
                     <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
                     <TabsTrigger value="viagens">Últimas Viagens</TabsTrigger>
-                    <TabsTrigger value="cidades">Cidades</TabsTrigger>
                 </TabsList>
 
                 {/* Aba de Programas */}
@@ -410,7 +413,7 @@ export default function DashboardPage() {
                     </Card>
                 </TabsContent>
 
-                {/* Aba de Funcionários - COM FILTROS DE GRUPO E PROGRAMA */}
+                {/* Aba de Funcionários - Apenas filtro de grupo */}
                 <TabsContent value="funcionarios">
                     <Card>
                         <CardHeader>
@@ -424,20 +427,6 @@ export default function DashboardPage() {
                                         onChange={(e) => setFiltroGrupo(e.target.value)}
                                     >
                                         {gruposOptions.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-600">Programa:</span>
-                                    <select
-                                        className="border rounded-lg px-3 py-1 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer"
-                                        value={filtroPrograma}
-                                        onChange={(e) => setFiltroPrograma(e.target.value)}
-                                    >
-                                        {programasOptions.map((opt) => (
                                             <option key={opt.value} value={opt.value}>
                                                 {opt.label}
                                             </option>
@@ -541,74 +530,40 @@ export default function DashboardPage() {
                                 </table>
                             </div>
                         </CardContent>
-
-                        {/* Aba de Cidades */}
-                        <TabsContent value="cidades">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Distribuição por Cidade</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {cidades.map((cidade) => (
-                                            <div key={cidade.nome} className="p-4 border rounded-lg">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <MapPin className="h-5 w-5 text-[#5D2A1A]" />
-                                                    <h3 className="font-medium">{cidade.nome}</h3>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                                    <div>
-                                                        <p className="text-gray-600">Viagens</p>
-                                                        <p className="font-medium">{cidade.viagens}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-gray-600">Valor</p>
-                                                        <p className="font-medium">R$ {cidade.valor.toLocaleString('pt-BR')}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {cidades.length === 0 && (
-                                            <p className="text-center text-gray-500 py-8 col-span-2">Nenhuma cidade encontrada</p>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
                     </Card>
-
-                    {/* Cards de Informações Adicionais */}
-                    {resumo && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card>
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <Clock className="h-8 w-8 text-blue-500" />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Tempo Médio</p>
-                                        <p className="text-lg font-bold">
-                                            {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
-                                        </p>
-                                        <p className="text-xs text-gray-500">por viagem</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <MapPin className="h-8 w-8 text-green-500" />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Distância Média</p>
-                                        <p className="text-lg font-bold">
-                                            {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
-                                        </p>
-                                        <p className="text-xs text-gray-500">por viagem</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
                 </TabsContent>
             </Tabs>
+
+            {/* Cards de Informações Adicionais */}
+            {resumo && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <Clock className="h-8 w-8 text-blue-500" />
+                            <div>
+                                <p className="text-sm text-gray-600">Tempo Médio</p>
+                                <p className="text-lg font-bold">
+                                    {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
+                                </p>
+                                <p className="text-xs text-gray-500">por viagem</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <MapPin className="h-8 w-8 text-green-500" />
+                            <div>
+                                <p className="text-sm text-gray-600">Distância Média</p>
+                                <p className="text-lg font-bold">
+                                    {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
+                                </p>
+                                <p className="text-xs text-gray-500">por viagem</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
