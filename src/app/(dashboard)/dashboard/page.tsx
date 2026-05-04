@@ -401,7 +401,6 @@ export default function DashboardPage() {
             <Tabs defaultValue="programas" className="space-y-4">
                 <TabsList className="grid w-full max-w-2xl grid-cols-3">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
-                    <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
                     <TabsTrigger value="viagens">Últimas Viagens</TabsTrigger>
                 </TabsList>
 
@@ -440,70 +439,6 @@ export default function DashboardPage() {
                                 {programas.length === 0 && (
                                     <p className="text-center text-gray-500 py-8">Nenhum dado encontrado</p>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Aba de Funcionários - Apenas filtro de grupo */}
-                <TabsContent value="funcionarios">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Funcionários</CardTitle>
-                            <div className="flex flex-wrap gap-4 mt-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-600">Grupo:</span>
-                                    <select
-                                        className="border rounded-lg px-3 py-1 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer"
-                                        value={filtroGrupo}
-                                        onChange={(e) => setFiltroGrupo(e.target.value)}
-                                    >
-                                        {gruposOptions.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Nome Completo</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Grupo</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Programa</th>
-                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Viagens</th>
-                                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {funcionarios.map((func) => (
-                                            <tr key={func.id} className="border-b hover:bg-gray-50">
-                                                <td className="py-3 px-4">
-                                                    <div>
-                                                        <p className="font-medium">{func.nomeCompleto}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3 px-4 text-sm">{func.grupo || "-"}</td>
-                                                <td className="py-3 px-4 text-sm">{func.programa}</td>
-                                                <td className="py-3 px-4 text-right font-medium">{func.totalViagens}</td>
-                                                <td className="py-3 px-4 text-right font-medium">
-                                                    R$ {func.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {funcionarios.length === 0 && (
-                                            <tr>
-                                                <td colSpan={8} className="text-center py-8 text-gray-500">
-                                                    Nenhum funcionário encontrado
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
                             </div>
                         </CardContent>
                     </Card>
