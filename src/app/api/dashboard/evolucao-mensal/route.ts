@@ -13,26 +13,21 @@ export async function GET(request: Request) {
             dataSolicitacao: { not: null },
         };
 
-        // Filtro por plataforma
         if (plataforma && plataforma !== 'todos') {
             where.plataforma = plataforma;
         }
 
-        // Filtro por data início
         if (dataInicioStr) {
             const dataInicio = new Date(dataInicioStr);
             dataInicio.setHours(0, 0, 0, 0);
             where.dataSolicitacao = { ...where.dataSolicitacao, gte: dataInicio };
         }
 
-        // Filtro por data fim
         if (dataFimStr) {
             const dataFim = new Date(dataFimStr);
             dataFim.setHours(23, 59, 59, 999);
             where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
         }
-
-        console.log('📊 Evolução Mensal - Where:', JSON.stringify(where));
 
         const corridas = await prisma.corrida.findMany({
             where,
@@ -42,27 +37,48 @@ export async function GET(request: Request) {
             },
         });
 
-        // Agrupar por mês
+        // Agrupar por mês (usando ano e mês para ordenação correta)
         const mesesMap = new Map();
 
         corridas.forEach(c => {
             if (!c.dataSolicitacao) return;
 
             const data = new Date(c.dataSolicitacao);
-            const mesAno = data.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
+            const ano = data.getFullYear();
+            const mes = data.getMonth();
+            const nomeMes = data.toLocaleString('pt-BR', { month: 'short' });
+
+            // Criar chave para ordenação (YYYY-MM)
+            const chave = `${ano}-${String(mes + 1).padStart(2, '0')}`;
+            const label = `${nomeMes}. ${ano}`;
+
             const valor = c.valorTotal ? Number(c.valorTotal) : 0;
 
-            if (!mesesMap.has(mesAno)) {
-                mesesMap.set(mesAno, { mes: mesAno, valor: 0, viagens: 0 });
+            if (!mesesMap.has(chave)) {
+                mesesMap.set(chave, {
+                    chave,
+                    mes: label,
+                    valor: 0,
+                    viagens: 0,
+                    ano,
+                    mesNumero: mes
+                });
             }
-            const item = mesesMap.get(mesAno);
+            const item = mesesMap.get(chave);
             item.valor += valor;
             item.viagens++;
         });
 
-        const dados = Array.from(mesesMap.values());
+        // 👇 ORDENAR POR DATA (mais antigo para mais recente)
+        const dados = Array.from(mesesMap.values())
+            .sort((a, b) => {
+                // Ordenar por ano, depois por mês
+                if (a.ano !== b.ano) return a.ano - b.ano;
+                return a.mesNumero - b.mesNumero;
+            })
+            .map(({ mes, valor, viagens }) => ({ mes, valor, viagens }));
 
-        console.log(`📊 ${dados.length} meses encontrados`);
+        console.log(`📊 ${dados.length} meses encontrados (ordenados cronologicamente)`);
 
         return NextResponse.json(dados);
     } catch (error) {
