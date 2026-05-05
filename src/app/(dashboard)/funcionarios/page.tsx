@@ -382,7 +382,9 @@ export default function UsuariosPage() {
                                             {corridasDetalhe.map((corrida) => (
                                                 <TableRow key={corrida.id}>
                                                     <TableCell className="font-mono text-sm">
-                                                        {format(new Date(corrida.dataSolicitacao), "dd/MM/yyyy", { locale: ptBR })}
+                                                        {corrida.dataSolicitacao
+                                                            ? format(new Date(corrida.dataSolicitacao), "dd/MM/yyyy", { locale: ptBR })
+                                                            : "-"}
                                                     </TableCell>
                                                     <TableCell className="font-mono text-sm">
                                                         {corrida.horaSolicitacao && corrida.horaChegada
