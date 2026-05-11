@@ -25,11 +25,13 @@ import {
     Eye,
     Loader2,
     Filter,
+    Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DateFilterModal } from "@/components/DateFilterModal";
+import { PlatformFilter } from "@/components/PlatformFilter";
 
 interface Funcionario {
     id: string;
@@ -81,6 +83,7 @@ export default function UsuariosPage() {
     const [tempDataInicio, setTempDataInicio] = useState("");
     const [tempDataFim, setTempDataFim] = useState("");
     const [programaSelecionado, setProgramaSelecionado] = useState("todos");
+    const [plataformaSelecionada, setPlataformaSelecionada] = useState("todos");
 
     // Opções para o select de programas
     const [programasOptions, setProgramasOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os programas" }]);
@@ -91,6 +94,7 @@ export default function UsuariosPage() {
             const params = new URLSearchParams();
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
+            if (plataformaSelecionada && plataformaSelecionada !== 'todos') params.append('plataforma', plataformaSelecionada);
 
             const programasRes = await fetch(`/api/dashboard/programas-lista?${params.toString()}`);
             const programasData = await programasRes.json();
@@ -119,6 +123,9 @@ export default function UsuariosPage() {
             if (programaSelecionado && programaSelecionado !== 'todos') {
                 params.append('programa', programaSelecionado);
             }
+            if (plataformaSelecionada && plataformaSelecionada !== 'todos') {
+                params.append('plataforma', plataformaSelecionada);
+            }
 
             const url = `/api/dashboard/funcionarios?${params.toString()}`;
             console.log('📡 URL:', url);
@@ -144,7 +151,7 @@ export default function UsuariosPage() {
     useEffect(() => {
         carregarOpcoes();
         carregarFuncionarios();
-    }, [dataInicio, dataFim, programaSelecionado]);
+    }, [dataInicio, dataFim, programaSelecionado, plataformaSelecionada]);
 
     // Carregar detalhes das corridas do funcionário
     const carregarDetalhesCorridas = async (funcionario: Funcionario) => {
@@ -158,6 +165,7 @@ export default function UsuariosPage() {
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
             if (programaSelecionado && programaSelecionado !== 'todos') params.append('programa', programaSelecionado);
+            if (plataformaSelecionada && plataformaSelecionada !== 'todos') params.append('plataforma', plataformaSelecionada);
 
             const response = await fetch(`/api/dashboard/corridas-por-funcionario?${params.toString()}`);
             if (!response.ok) throw new Error("Erro ao carregar corridas");
@@ -191,6 +199,7 @@ export default function UsuariosPage() {
         setDataInicio("");
         setDataFim("");
         setProgramaSelecionado("todos");
+        setPlataformaSelecionada("todos");
         toast.info("Filtros removidos. Mostrando todos os dados.");
     };
 
@@ -202,7 +211,7 @@ export default function UsuariosPage() {
     );
 
     // Verificar se há filtros ativos
-    const hasActiveFilters = dataInicio || dataFim || programaSelecionado !== "todos";
+    const hasActiveFilters = dataInicio || dataFim || programaSelecionado !== "todos" || plataformaSelecionada !== "todos";
 
     if (loading) {
         return (
@@ -226,12 +235,15 @@ export default function UsuariosPage() {
                                 {dataInicio && `Data início: ${dataInicio}`}
                                 {dataFim && ` até ${dataFim}`}
                                 {programaSelecionado !== "todos" && ` • Programa: ${programaSelecionado}`}
+                                {plataformaSelecionada !== "todos" && ` • Plataforma: ${plataformaSelecionada}`}
                             </p>
                         )}
                     </div>
 
                     {/* Botões de filtro */}
                     <div className="flex flex-wrap gap-2 items-center">
+                        <PlatformFilter value={plataformaSelecionada} onChange={setPlataformaSelecionada} />
+
                         <select
                             className="border rounded-lg px-3 py-2 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer min-w-[180px]"
                             value={programaSelecionado}
@@ -243,6 +255,7 @@ export default function UsuariosPage() {
                                 </option>
                             ))}
                         </select>
+
                         {hasActiveFilters && (
                             <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
                                 Filtro ativo
@@ -388,43 +401,45 @@ export default function UsuariosPage() {
                                             <TableRow>
                                                 <TableHead className="w-[100px]">Data</TableHead>
                                                 <TableHead className="w-[80px]">Hora</TableHead>
-                                                <TableHead>Endereço de Partida</TableHead>
-                                                <TableHead>Endereço de Destino</TableHead>
-                                                <TableHead>KM</TableHead>
-                                                <TableHead>Serviço</TableHead>
-                                                <TableHead>Detalhamento</TableHead>
-                                                <TableHead className="text-right">Valor</TableHead>
+                                                <TableHead className="min-w-[200px]">Endereço de Partida</TableHead>
+                                                <TableHead className="min-w-[200px]">Endereço de Destino</TableHead>
+                                                <TableHead className="w-[100px]">KM</TableHead>
+                                                <TableHead className="w-[100px]">Serviço</TableHead>
+                                                <TableHead className="min-w-[150px]">Detalhamento</TableHead>
+                                                <TableHead className="w-[100px] text-right">Valor</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {corridasDetalhe.map((corrida) => (
                                                 <TableRow key={corrida.id}>
-                                                    <TableCell className="font-mono text-sm">
+                                                    <TableCell className="font-mono text-sm align-top">
                                                         {corrida.dataSolicitacao
                                                             ? format(new Date(corrida.dataSolicitacao), "dd/MM/yyyy", { locale: ptBR })
                                                             : "-"}
                                                     </TableCell>
-                                                    <TableCell className="font-mono text-sm">
+                                                    <TableCell className="font-mono text-sm align-top">
                                                         {corrida.horaSolicitacao && corrida.horaChegada
                                                             ? `${corrida.horaSolicitacao} → ${corrida.horaChegada}`
                                                             : corrida.horaSolicitacao || corrida.horaChegada || "-"}
                                                     </TableCell>
-                                                    <TableCell className="max-w-[200px] truncate" title={corrida.enderecoPartida}>
+                                                    <TableCell className="min-w-[200px] align-top whitespace-normal break-words">
                                                         {corrida.enderecoPartida || "-"}
                                                     </TableCell>
-                                                    <TableCell className="max-w-[200px] truncate" title={corrida.enderecoDestino}>
+                                                    <TableCell className="min-w-[200px] align-top whitespace-normal break-words">
                                                         {corrida.enderecoDestino || "-"}
                                                     </TableCell>
-                                                    <TableCell className="font-mono text-sm">
+                                                    <TableCell className="font-mono text-sm align-top">
                                                         {corrida.distanciaKm
                                                             ? `${corrida.distanciaKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
                                                             : "-"}
                                                     </TableCell>
-                                                    <TableCell>{corrida.servico || "-"}</TableCell>
-                                                    <TableCell className="max-w-[200px] truncate" title={corrida.detalhamentoDespesa}>
+                                                    <TableCell className="align-top">
+                                                        {corrida.servico || "-"}
+                                                    </TableCell>
+                                                    <TableCell className="min-w-[150px] align-top whitespace-normal break-words">
                                                         {corrida.detalhamentoDespesa || "-"}
                                                     </TableCell>
-                                                    <TableCell className="text-right font-medium">
+                                                    <TableCell className="text-right font-medium align-top">
                                                         R$ {corrida.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                                     </TableCell>
                                                 </TableRow>
@@ -450,7 +465,6 @@ export default function UsuariosPage() {
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {(() => {
-                                            // Agrupar por serviço
                                             const servicosMap = new Map();
                                             const totalGeral = corridasDetalhe.reduce((acc, c) => acc + c.valorTotal, 0);
                                             const colors = [
@@ -474,7 +488,6 @@ export default function UsuariosPage() {
                                                 item.valor += corrida.valorTotal;
                                             });
 
-                                            // Ordenar por quantidade (maior para menor)
                                             const servicosOrdenados = Array.from(servicosMap.entries())
                                                 .map(([nome, dados]) => ({ nome, ...dados }))
                                                 .sort((a, b) => b.quantidade - a.quantidade);
