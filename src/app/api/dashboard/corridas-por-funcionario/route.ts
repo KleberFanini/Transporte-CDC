@@ -50,23 +50,43 @@ export async function GET(request: Request) {
                 servico: true,
                 detalhamentoDespesa: true,
                 valorTotal: true,
+                distanciaMetros: true,
+                plataforma: true,
             },
         });
 
         console.log(`📊 Encontradas ${corridas.length} corridas`);
 
         // Formatar os dados
-        const dados = corridas.map(c => ({
-            id: c.id,
-            dataSolicitacao: c.dataSolicitacao ? c.dataSolicitacao.toISOString() : '',
-            horaSolicitacao: c.horaSolicitacao || '',
-            horaChegada: c.horaChegada || '',
-            enderecoPartida: c.enderecoPartida || '',
-            enderecoDestino: c.enderecoDestino || '',
-            servico: c.servico || '',
-            detalhamentoDespesa: c.detalhamentoDespesa || '',
-            valorTotal: c.valorTotal ? Number(c.valorTotal) : 0,
-        }));
+        const MILHAS_PARA_KM = 1.60934;
+
+        const dados = corridas.map(c => {
+            let distanciaKm = 0;
+
+            if (c.distanciaMetros) {
+                if (c.plataforma === 'UBER') {
+                    distanciaKm = Number((c.distanciaMetros * MILHAS_PARA_KM).toFixed(1));
+                } else if (c.plataforma === 'NOVE_NOVE') {
+                    distanciaKm = Number((c.distanciaMetros / 1000).toFixed(1));
+                } else {
+                    distanciaKm = Number((c.distanciaMetros / 1000).toFixed(1));
+                }
+            }
+
+            return {
+                id: c.id,
+                dataSolicitacao: c.dataSolicitacao ? c.dataSolicitacao.toISOString() : '',
+                horaSolicitacao: c.horaSolicitacao || '',
+                horaChegada: c.horaChegada || '',
+                enderecoPartida: c.enderecoPartida || '',
+                enderecoDestino: c.enderecoDestino || '',
+                servico: c.servico || '',
+                detalhamentoDespesa: c.detalhamentoDespesa || '',
+                valorTotal: c.valorTotal ? Number(c.valorTotal) : 0,
+                distanciaKm: distanciaKm,
+                plataforma: c.plataforma || '',
+            };
+        });
 
         return NextResponse.json(dados);
     } catch (error) {

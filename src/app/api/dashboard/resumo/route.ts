@@ -67,7 +67,7 @@ export async function GET(request: Request) {
                 valorTotal += Number(corrida.valorTotal);
             }
             if (corrida.distanciaMetros) {
-                distanciaTotal += corrida.distanciaMetros / 1000;
+                distanciaTotal += Number(corrida.distanciaMetros);
             }
             if (corrida.duracaoMinutos) {
                 tempoTotal += corrida.duracaoMinutos;

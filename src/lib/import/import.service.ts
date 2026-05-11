@@ -11,6 +11,8 @@ export class ImportService {
         const erros: { linha: number; erro: string }[] = [];
         let importados = 0;
 
+        console.log(`📊 Iniciando importação de ${dados.length} registros...`);
+
         for (let i = 0; i < dados.length; i++) {
             try {
                 const item = dados[i];
@@ -20,7 +22,10 @@ export class ImportService {
                     continue;
                 }
 
-                const distanciaMetros = item.distanciaKm ? Math.round(item.distanciaKm * 1000) : null;
+                // 👇 ARMAZENA DIRETAMENTE EM KM (já vem convertido do parser)
+                const distanciaKm = item.distanciaKm ? Number(item.distanciaKm.toFixed(2)) : null;
+
+                console.log(`📏 Linha ${i + 1}: ${distanciaKm} km`);
 
                 let dataSolicitacaoDate: Date | null = null;
                 let dataChegadaDate: Date | null = null;
@@ -67,7 +72,7 @@ export class ImportService {
                         email: item.email,
                         detalhamentoDespesa: item.detalhamentoDespesa,
                         valorTotal: item.valorTotal,
-                        distanciaMetros,
+                        distanciaMetros: distanciaKm,  // Nome da coluna mantido, mas valor em KM
                         duracaoMinutos: item.duracaoMin,
                         enderecoPartida: item.enderecoPartida,
                         enderecoDestino: item.enderecoDestino,
@@ -91,7 +96,7 @@ export class ImportService {
                         email: item.email,
                         detalhamentoDespesa: item.detalhamentoDespesa,
                         valorTotal: item.valorTotal,
-                        distanciaMetros,
+                        distanciaMetros: distanciaKm,
                         duracaoMinutos: item.duracaoMin,
                         enderecoPartida: item.enderecoPartida,
                         enderecoDestino: item.enderecoDestino,
@@ -102,10 +107,12 @@ export class ImportService {
 
                 importados++;
             } catch (error) {
-                console.error(`Erro na linha ${i + 1}:`, error);
+                console.error(`❌ Erro na linha ${i + 1}:`, error);
                 erros.push({ linha: i + 1, erro: error instanceof Error ? error.message : 'Erro desconhecido' });
             }
         }
+
+        console.log(`✅ Importação concluída: ${importados} registros importados, ${erros.length} erros`);
 
         return { total: dados.length, importados, erros };
     }

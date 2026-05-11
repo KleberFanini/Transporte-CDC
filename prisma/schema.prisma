@@ -35,7 +35,7 @@ model Usuario {
   email     String   @unique
   senha     String
   perfil    Perfil     @default(visualizador)
-  status      UsuarioStatus  @default(ATIVO)
+  status    UsuarioStatus  @default(ATIVO)
   
   criadoEm DateTime @default(now())
   atualizadoEm DateTime @updatedAt
@@ -69,7 +69,7 @@ model Corrida {
   
   // Valores e métricas
   valorTotal          Decimal?  @db.Decimal(10,2)
-  distanciaMetros     Int?
+  distanciaMetros     Decimal?  @db.Decimal(10,2)
   duracaoMinutos      Int?
   
   // Endereços

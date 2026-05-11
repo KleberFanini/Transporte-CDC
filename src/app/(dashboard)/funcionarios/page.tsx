@@ -56,6 +56,7 @@ interface CorridaDetalhe {
     servico: string;
     detalhamentoDespesa: string;
     valorTotal: number;
+    distanciaKm: number;
 }
 
 // Opções para os selects
@@ -107,18 +108,34 @@ export default function UsuariosPage() {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (dataInicio) params.append('dataInicio', dataInicio);
-            if (dataFim) params.append('dataFim', dataFim);
-            if (programaSelecionado && programaSelecionado !== 'todos') params.append('programa', programaSelecionado);
+
+            // Só adiciona se tiver valor válido
+            if (dataInicio && dataInicio.trim() !== '') {
+                params.append('dataInicio', dataInicio);
+            }
+            if (dataFim && dataFim.trim() !== '') {
+                params.append('dataFim', dataFim);
+            }
+            if (programaSelecionado && programaSelecionado !== 'todos') {
+                params.append('programa', programaSelecionado);
+            }
 
             const url = `/api/dashboard/funcionarios?${params.toString()}`;
+            console.log('📡 URL:', url);
+
             const response = await fetch(url);
-            if (!response.ok) throw new Error("Erro ao carregar funcionários");
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Erro da API:', errorData);
+                throw new Error(errorData.error || "Erro ao carregar funcionários");
+            }
+
             const data = await response.json();
             setFuncionarios(data);
         } catch (error) {
             console.error("Erro:", error);
-            toast.error("Erro ao carregar funcionários");
+            toast.error(error instanceof Error ? error.message : "Erro ao carregar funcionários");
         } finally {
             setLoading(false);
         }
@@ -373,6 +390,7 @@ export default function UsuariosPage() {
                                                 <TableHead className="w-[80px]">Hora</TableHead>
                                                 <TableHead>Endereço de Partida</TableHead>
                                                 <TableHead>Endereço de Destino</TableHead>
+                                                <TableHead>KM</TableHead>
                                                 <TableHead>Serviço</TableHead>
                                                 <TableHead>Detalhamento</TableHead>
                                                 <TableHead className="text-right">Valor</TableHead>
@@ -396,6 +414,11 @@ export default function UsuariosPage() {
                                                     </TableCell>
                                                     <TableCell className="max-w-[200px] truncate" title={corrida.enderecoDestino}>
                                                         {corrida.enderecoDestino || "-"}
+                                                    </TableCell>
+                                                    <TableCell className="font-mono text-sm">
+                                                        {corrida.distanciaKm
+                                                            ? `${corrida.distanciaKm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+                                                            : "-"}
                                                     </TableCell>
                                                     <TableCell>{corrida.servico || "-"}</TableCell>
                                                     <TableCell className="max-w-[200px] truncate" title={corrida.detalhamentoDespesa}>

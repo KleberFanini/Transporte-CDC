@@ -20,29 +20,37 @@ export async function GET(request: Request) {
             where.plataforma = plataforma;
         }
 
-        if (grupo && grupo !== '') {
+        if (grupo && grupo !== '' && grupo !== 'todos') {
             where.grupo = grupo;
         }
 
-        if (programa && programa !== 'todos' && programa !== '') {
+        if (programa && programa !== '' && programa !== 'todos') {
             where.programa = programa;
         }
 
-        if (dataInicioStr) {
+        // Tratamento seguro das datas
+        if (dataInicioStr && dataInicioStr !== '') {
             const dataInicio = new Date(dataInicioStr);
-            dataInicio.setHours(0, 0, 0, 0);
-            where.dataSolicitacao = { gte: dataInicio };
+            if (!isNaN(dataInicio.getTime())) {
+                dataInicio.setHours(0, 0, 0, 0);
+                where.dataSolicitacao = { gte: dataInicio };
+            } else {
+                console.log(`⚠️ Data início inválida: ${dataInicioStr}`);
+            }
         }
 
-        if (dataFimStr) {
+        if (dataFimStr && dataFimStr !== '') {
             const dataFim = new Date(dataFimStr);
-            dataFim.setHours(23, 59, 59, 999);
-            where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            if (!isNaN(dataFim.getTime())) {
+                dataFim.setHours(23, 59, 59, 999);
+                where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            } else {
+                console.log(`⚠️ Data fim inválida: ${dataFimStr}`);
+            }
         }
 
-        console.log('📊 Buscando funcionários com where:', JSON.stringify(where));
+        console.log('🔍 Where clause final:', JSON.stringify(where));
 
-        // Buscar todas as corridas
         const corridas = await prisma.corrida.findMany({
             where,
             select: {
@@ -59,9 +67,8 @@ export async function GET(request: Request) {
             },
         });
 
-        console.log(`📊 Encontradas ${corridas.length} corridas para funcionários`);
+        console.log(`📊 Encontradas ${corridas.length} corridas`);
 
-        // Agrupar por funcionário
         const funcionariosMap = new Map();
 
         for (const c of corridas) {
@@ -96,11 +103,14 @@ export async function GET(request: Request) {
         const funcionarios = Array.from(funcionariosMap.values())
             .sort((a, b) => b.valorTotal - a.valorTotal);
 
-        console.log(`📊 Total de funcionários encontrados: ${funcionarios.length}`);
+        console.log(`📊 Total de funcionários: ${funcionarios.length}`);
 
         return NextResponse.json(funcionarios);
     } catch (error) {
         console.error('❌ Erro ao buscar funcionários:', error);
-        return NextResponse.json({ error: 'Erro ao buscar dados' }, { status: 500 });
+        return NextResponse.json(
+            { error: 'Erro ao buscar dados', details: error instanceof Error ? error.message : 'Unknown error' },
+            { status: 500 }
+        );
     }
 }

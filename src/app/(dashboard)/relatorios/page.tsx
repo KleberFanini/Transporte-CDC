@@ -401,10 +401,10 @@ export default function RelatoriosPage() {
 
                 {/* Aba - Evolução Mensal */}
                 <TabsContent value="evolucao">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center">
                                     <TrendingUp className="h-5 w-5" />
                                     Evolução Mensal de Gastos
                                 </CardTitle>
@@ -428,7 +428,7 @@ export default function RelatoriosPage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center">
                                     <Calendar className="h-5 w-5" />
                                     Evolução Mensal de Viagens
                                 </CardTitle>
