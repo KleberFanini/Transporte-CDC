@@ -7,8 +7,7 @@ export async function GET(request: Request) {
         const nomeCompleto = searchParams.get('nomeCompleto');
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
-
-        console.log('📊 Parâmetros recebidos:', { nomeCompleto, dataInicioStr, dataFimStr });
+        const programa = searchParams.get('programa');
 
         if (!nomeCompleto) {
             return NextResponse.json(
@@ -21,21 +20,25 @@ export async function GET(request: Request) {
             nomeCompleto: nomeCompleto,
         };
 
-        if (dataInicioStr) {
+        if (dataInicioStr && dataInicioStr !== '') {
             const dataInicio = new Date(dataInicioStr);
-            dataInicio.setHours(0, 0, 0, 0);
-            where.dataSolicitacao = { gte: dataInicio };
+            if (!isNaN(dataInicio.getTime())) {
+                dataInicio.setHours(0, 0, 0, 0);
+                where.dataSolicitacao = { gte: dataInicio };
+            }
         }
 
-        if (dataFimStr) {
+        if (dataFimStr && dataFimStr !== '') {
             const dataFim = new Date(dataFimStr);
-            dataFim.setHours(23, 59, 59, 999);
-            where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            if (!isNaN(dataFim.getTime())) {
+                dataFim.setHours(23, 59, 59, 999);
+                where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            }
         }
 
-        console.log('🔍 Where clause:', JSON.stringify(where));
-
-        console.log(`🔍 Buscando corridas para: ${nomeCompleto}`);
+        if (programa && programa !== 'todos') {
+            where.programa = programa;
+        }
 
         const corridas = await prisma.corrida.findMany({
             where,
@@ -55,23 +58,28 @@ export async function GET(request: Request) {
             },
         });
 
-        console.log(`📊 Encontradas ${corridas.length} corridas`);
-
-        // Formatar os dados
         const MILHAS_PARA_KM = 1.60934;
 
         const dados = corridas.map(c => {
             let distanciaKm = 0;
 
             if (c.distanciaMetros) {
+                // 👇 CONVERTER Decimal PARA NUMBER
+                const valorDistancia = Number(c.distanciaMetros);
+
                 if (c.plataforma === 'UBER') {
-                    distanciaKm = Number((c.distanciaMetros * MILHAS_PARA_KM).toFixed(1));
+                    // UBER: está em MILHAS → converter para KM
+                    distanciaKm = Number((valorDistancia * MILHAS_PARA_KM).toFixed(1));
                 } else if (c.plataforma === 'NOVE_NOVE') {
-                    distanciaKm = Number((c.distanciaMetros / 1000).toFixed(1));
+                    // 99: já está em KM
+                    distanciaKm = Number(valorDistancia.toFixed(1));
                 } else {
-                    distanciaKm = Number((c.distanciaMetros / 1000).toFixed(1));
+                    // Fallback: assume que está em metros
+                    distanciaKm = Number((valorDistancia / 1000).toFixed(1));
                 }
             }
+
+            console.log(`📏 Corrida ${c.id}: ${c.plataforma} - ${c.distanciaMetros} -> ${distanciaKm} km`);
 
             return {
                 id: c.id,
@@ -84,7 +92,6 @@ export async function GET(request: Request) {
                 detalhamentoDespesa: c.detalhamentoDespesa || '',
                 valorTotal: c.valorTotal ? Number(c.valorTotal) : 0,
                 distanciaKm: distanciaKm,
-                plataforma: c.plataforma || '',
             };
         });
 
