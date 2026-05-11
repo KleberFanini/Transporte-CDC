@@ -58,28 +58,16 @@ export async function GET(request: Request) {
             },
         });
 
-        const MILHAS_PARA_KM = 1.60934;
-
         const dados = corridas.map(c => {
             let distanciaKm = 0;
 
             if (c.distanciaMetros) {
-                // 👇 CONVERTER Decimal PARA NUMBER
                 const valorDistancia = Number(c.distanciaMetros);
 
-                if (c.plataforma === 'UBER') {
-                    // UBER: está em MILHAS → converter para KM
-                    distanciaKm = Number((valorDistancia * MILHAS_PARA_KM).toFixed(1));
-                } else if (c.plataforma === 'NOVE_NOVE') {
-                    // 99: já está em KM
-                    distanciaKm = Number(valorDistancia.toFixed(1));
-                } else {
-                    // Fallback: assume que está em metros
-                    distanciaKm = Number((valorDistancia / 1000).toFixed(1));
-                }
-            }
+                distanciaKm = valorDistancia;
 
-            console.log(`📏 Corrida ${c.id}: ${c.plataforma} - ${c.distanciaMetros} -> ${distanciaKm} km`);
+                console.log(`Plataforma: ${c.plataforma}, Banco: ${valorDistancia}, Exibido: ${distanciaKm} km`);
+            }
 
             return {
                 id: c.id,
@@ -91,7 +79,7 @@ export async function GET(request: Request) {
                 servico: c.servico || '',
                 detalhamentoDespesa: c.detalhamentoDespesa || '',
                 valorTotal: c.valorTotal ? Number(c.valorTotal) : 0,
-                distanciaKm: distanciaKm,
+                distanciaKm: c.distanciaMetros,
             };
         });
 

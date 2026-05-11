@@ -7,14 +7,8 @@ import { Button } from "@/components/ui/button";
 import {
     Users,
     DollarSign,
-    MapPin,
-    Clock,
-    Globe,
-    Briefcase,
     Filter,
     Download,
-    ChevronUp,
-    ChevronDown,
     Car,
     Loader2
 } from "lucide-react";
@@ -81,7 +75,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [plataforma, setPlataforma] = useState("todos");
-    const [programaGlobal, setProgramaGlobal] = useState("todos"); // 👈 FILTRO GLOBAL DE PROGRAMA
+    const [programaGlobal, setProgramaGlobal] = useState("todos");
 
     // Filtro APENAS para a aba de Funcionários (apenas grupo)
     const [filtroGrupo, setFiltroGrupo] = useState("todos");
@@ -112,7 +106,6 @@ export default function DashboardPage() {
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
             if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
 
-            // Carregar grupos distintos
             const gruposRes = await fetch(`/api/dashboard/grupos?${params.toString()}`);
             const gruposData = await gruposRes.json();
             setGruposOptions([
@@ -120,7 +113,6 @@ export default function DashboardPage() {
                 ...gruposData.map((g: string) => ({ value: g, label: g }))
             ]);
 
-            // Carregar programas
             const programasRes = await fetch(`/api/dashboard/programas-lista?${params.toString()}`);
             const programasData = await programasRes.json();
             setProgramasOptions([
@@ -152,7 +144,7 @@ export default function DashboardPage() {
         toast.info("Todos os filtros foram removidos.");
     };
 
-    // Carregar dados do dashboard (com filtro global de programa)
+    // Carregar dados do dashboard
     const carregarDados = async () => {
         setLoading(true);
         try {
@@ -162,22 +154,18 @@ export default function DashboardPage() {
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
             if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
 
-            // Carregar resumo
             const resumoRes = await fetch(`/api/dashboard/resumo?${params.toString()}`);
             const resumoData = await resumoRes.json();
             setResumo(resumoData);
 
-            // Carregar programas
             const programasRes = await fetch(`/api/dashboard/programas?${params.toString()}`);
             const programasData = await programasRes.json();
             setProgramas(programasData);
 
-            // Carregar últimas viagens
             const viagensRes = await fetch(`/api/dashboard/ultimas-viagens?limit=10&${params.toString()}`);
             const viagensData = await viagensRes.json();
             setUltimasViagens(viagensData);
 
-            // Carregar serviços
             const servicosRes = await fetch(`/api/dashboard/servicos?${params.toString()}`);
             const servicosData = await servicosRes.json();
             setServicos(servicosData);
@@ -190,7 +178,7 @@ export default function DashboardPage() {
         }
     };
 
-    // Carregar funcionários (apenas com filtro de grupo, não programa)
+    // Carregar funcionários
     const carregarFuncionarios = async () => {
         try {
             const params = new URLSearchParams();
@@ -284,8 +272,6 @@ export default function DashboardPage() {
                         </Button>
                     </div>
                 </div>
-
-
             </div>
 
             {/* Modal de Filtro de Data */}
@@ -297,9 +283,9 @@ export default function DashboardPage() {
                 dataFimInicial={tempDataFim}
             />
 
-            {/* KPIs principais */}
+            {/* KPIs principais - REMOVIDOS: Ticket Médio */}
             {resumo && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
@@ -347,61 +333,13 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
-
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">Ticket Médio</p>
-                                    <p className="text-2xl font-bold text-gray-900 mt-1">
-                                        R$ {resumo.totalViagens > 0 ? (resumo.valorTotal / resumo.totalViagens).toFixed(2) : '0'}
-                                    </p>
-                                </div>
-                                <div className="p-3 bg-yellow-100 rounded-full">
-                                    <Briefcase className="h-6 w-6 text-yellow-600" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-
-            {/* Cards de Informações Adicionais */}
-            {resumo && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <Clock className="h-8 w-8 text-blue-500" />
-                            <div>
-                                <p className="text-sm text-gray-600">Tempo Médio</p>
-                                <p className="text-lg font-bold">
-                                    {resumo.totalViagens > 0 ? (resumo.tempoTotal / resumo.totalViagens).toFixed(0) : 0} min
-                                </p>
-                                <p className="text-xs text-gray-500">por viagem</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <MapPin className="h-8 w-8 text-green-500" />
-                            <div>
-                                <p className="text-sm text-gray-600">Distância Média</p>
-                                <p className="text-lg font-bold">
-                                    {resumo.totalViagens > 0 ? (resumo.distanciaTotal / resumo.totalViagens).toFixed(1) : 0} km
-                                </p>
-                                <p className="text-xs text-gray-500">por viagem</p>
-                            </div>
-                        </CardContent>
-                    </Card>
                 </div>
             )}
 
             {/* Tabs */}
             <Tabs defaultValue="programas" className="space-y-4">
-                <TabsList className="grid w-full max-w-2xl grid-cols-3">
-                    <TabsTrigger value="programas">Programas</TabsTrigger>
-                    <TabsTrigger value="viagens">Últimas Viagens</TabsTrigger>
+                <TabsList className="grid w-full max-w-2xl grid-cols-1">
+                    <TabsTrigger value="programas"> Gastos por Programa</TabsTrigger>
                 </TabsList>
 
                 {/* Aba de Programas */}
@@ -415,7 +353,6 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {/* 👇 ORDENAR DO MAIOR PARA O MENOR VALOR */}
                                 {[...programas].sort((a, b) => b.valor - a.valor).map((programa) => {
                                     const total = programas.reduce((acc, p) => acc + p.valor, 0);
                                     const percentual = total > 0 ? (programa.valor / total) * 100 : 0;
@@ -439,56 +376,6 @@ export default function DashboardPage() {
                                 {programas.length === 0 && (
                                     <p className="text-center text-gray-500 py-8">Nenhum dado encontrado</p>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Aba de Viagens */}
-                <TabsContent value="viagens">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Últimas Viagens</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b">
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Funcionário</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Grupo</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Programa</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Serviço</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Data</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Hora</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Partida</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Destino</th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Valor</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {ultimasViagens.map((viagem) => (
-                                            <tr key={viagem.id} className="border-b hover:bg-gray-50">
-                                                <td className="py-3 px-4 text-sm font-medium">{viagem.funcionario}</td>
-                                                <td className="py-3 px-4 text-sm">{viagem.grupo}</td>
-                                                <td className="py-3 px-4 text-sm">{viagem.programa}</td>
-                                                <td className="py-3 px-4 text-sm">{viagem.servico}</td>
-                                                <td className="py-3 px-4 text-sm">{viagem.dataSolicitacao}</td>
-                                                <td className="py-3 px-4 text-sm">{viagem.horaSolicitacao}</td>
-                                                <td className="py-3 px-4 text-sm max-w-xs truncate">{viagem.partida}</td>
-                                                <td className="py-3 px-4 text-sm max-w-xs truncate">{viagem.destino}</td>
-                                                <td className="py-3 px-4 text-sm font-medium">R$ {viagem.valor.toFixed(2)}</td>
-                                            </tr>
-                                        ))}
-                                        {ultimasViagens.length === 0 && (
-                                            <tr>
-                                                <td colSpan={9} className="text-center py-8 text-gray-500">
-                                                    Nenhuma viagem encontrada
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
                             </div>
                         </CardContent>
                     </Card>

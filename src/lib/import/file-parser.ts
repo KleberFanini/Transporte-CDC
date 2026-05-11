@@ -80,55 +80,30 @@ export class FileParser {
         return '00:00';
     }
 
-    private static parseFloatBr(value: any): number {
-        if (!value || value === '') return 0;
-        if (typeof value === 'number') return value;
+    private static parseFloatExato(value: any): number {
+        if (value === null || value === undefined || value === '') return 0;
 
-        let str = String(value).trim();
-
-        // Substitui vírgula por ponto (decimal)
-        str = str.replace(',', '.');
-
-        // Remove caracteres não numéricos exceto ponto e sinal de menos
-        str = str.replace(/[^0-9.-]/g, '');
-
-        const num = parseFloat(str);
-
-        return isNaN(num) ? 0 : num;
-    }
-
-    // 👇 FUNÇÃO CORRIGIDA: Converte Milhas para KM
-    private static parseMilhasToKm(milhasValue: any): number {
-        const MILHAS_PARA_KM = 1.60934;
-
-        // Primeiro, converte o valor para número (tratando vírgula)
-        let milhas = 0;
-
-        if (typeof milhasValue === 'number') {
-            milhas = milhasValue;
-        } else if (typeof milhasValue === 'string') {
-            // Substitui vírgula por ponto
-            const str = milhasValue.replace(',', '.').trim();
-            milhas = parseFloat(str);
-        } else {
-            milhas = 0;
+        if (typeof value === 'number') {
+            return value;
         }
 
-        const km = milhas * MILHAS_PARA_KM;
+        if (typeof value === 'string') {
+            let str = value.trim();
+            str = str.replace(',', '.');
+            str = str.replace(/[^0-9.-]/g, '');
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        }
 
-        console.log(`📏 Milhas: ${milhas} mi -> ${km.toFixed(2)} km`);
-
-        return Number(km.toFixed(2));
+        return 0;
     }
 
     private static mapRowToCorrida(row: any): PlanilhaCorrida {
-        // Pegar valores das colunas
         const rawDataSolicitacao = row['Data Solicitação'] || row['data_solicitacao'] || row['Request Date'];
         const rawDataChegada = row['Data Chegada'] || row['data_chegada'] || row['Drop-off Date'];
         const rawHoraSolicitacao = row['Hora Solicitação'] || row['hora_solicitacao'] || row['Request Time'];
         const rawHoraChegada = row['Hora Chegada'] || row['hora_chegada'] || row['Drop-off Time'];
 
-        // Correção da plataforma
         let plataforma: 'UBER' | 'NOVE_NOVE' = 'UBER';
         const plataformaRaw = row['Plataforma'] || row['plataforma'] || '';
         const plataformaStr = String(plataformaRaw).toUpperCase().trim();
@@ -137,37 +112,19 @@ export class FileParser {
             plataforma = 'NOVE_NOVE';
         }
 
-        // ID da corrida
         const idCorrida = row['ID da Corrida'] || row['id_corrida'] || row['Trip ID'] || '';
         const idCorridaStr = String(idCorrida).replace('.0', '');
 
-        // 👇 OBTÉM O VALOR CRU DA DISTÂNCIA
         const distanciaRaw = row['Distância (km)'] || row['distancia_km'] || row['Distance'] || 0;
-
-        // 👇 CONVERTE APENAS SE FOR UBER (milhas para km)
         let distanciaKm = 0;
-        const MILHAS_PARA_KM = 1.60934;
-
-        // Converte o valor para número (tratando vírgula)
-        let valorNumerico = 0;
-        if (typeof distanciaRaw === 'number') {
-            valorNumerico = distanciaRaw;
-        } else if (typeof distanciaRaw === 'string') {
-            const str = distanciaRaw.replace(',', '.').trim();
-            valorNumerico = parseFloat(str);
-        }
+        let valorNumerico = this.parseFloatExato(distanciaRaw);
 
         if (plataforma === 'UBER') {
-            // UBER: está em MILHAS → converter para KM
-            distanciaKm = valorNumerico * MILHAS_PARA_KM;
-            console.log(`📏 UBER: ${valorNumerico} milhas → ${distanciaKm.toFixed(2)} km`);
+            distanciaKm = valorNumerico * 1.60934;
         } else {
-            // 99 (NOVE_NOVE): já está em KM
             distanciaKm = valorNumerico;
-            console.log(`📏 99: ${distanciaKm.toFixed(2)} km (já em km)`);
         }
 
-        // Duração
         let duracaoMin = 0;
         const duracaoRaw = row['Duração (min)'] || row['duracao_min'] || row['Duration'];
         if (duracaoRaw) {
@@ -176,9 +133,11 @@ export class FileParser {
                 duracaoMin = parseInt(parts[0]) * 60 + parseInt(parts[1]);
                 if (parts.length > 2) duracaoMin += parseInt(parts[2]);
             } else {
-                duracaoMin = Math.round(this.parseFloatBr(duracaoRaw));
+                duracaoMin = Math.round(this.parseFloatExato(duracaoRaw));
             }
         }
+
+        const valorTotal = this.parseFloatExato(row['Valor Total'] || row['valor_total'] || row['Amount']);
 
         return {
             idCorridaPlataforma: idCorridaStr,
@@ -195,8 +154,8 @@ export class FileParser {
             nomeCompleto: row['Nome Completo'] || row['nome_completo'] || '',
             email: row['Email'] || row['email'] || row['E-mail'] || '',
             detalhamentoDespesa: row['Detalhamento da despesa'] || row['detalhamento_despesa'] || row['Expense Memo'] || '',
-            valorTotal: this.parseFloatBr(row['Valor Total'] || row['valor_total'] || row['Amount']),
-            distanciaKm: Number(distanciaKm.toFixed(2)),
+            valorTotal: valorTotal,
+            distanciaKm: this.parseFloatExato(distanciaKm),
             duracaoMin: duracaoMin,
             enderecoPartida: row['Endereço Partida'] || row['endereco_partida'] || row['Pickup Address'] || '',
             enderecoDestino: row['Endereço Destino'] || row['endereco_destino'] || row['Drop-off Address'] || '',

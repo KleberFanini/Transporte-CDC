@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { PlanilhaCorrida } from './types';
+import { Prisma } from '@prisma/client';
 
 export class ImportService {
 
@@ -22,10 +23,10 @@ export class ImportService {
                     continue;
                 }
 
-                // 👇 ARMAZENA DIRETAMENTE EM KM (já vem convertido do parser)
-                const distanciaKm = item.distanciaKm ? Number(item.distanciaKm.toFixed(2)) : null;
-
-                console.log(`📏 Linha ${i + 1}: ${distanciaKm} km`);
+                let distanciaKm: number | null = null;
+                if (item.distanciaKm !== null && item.distanciaKm !== undefined) {
+                    distanciaKm = parseFloat(String(item.distanciaKm));
+                }
 
                 let dataSolicitacaoDate: Date | null = null;
                 let dataChegadaDate: Date | null = null;
@@ -54,6 +55,10 @@ export class ImportService {
                     'EM_ANDAMENTO': 'EM_ANDAMENTO',
                 };
 
+                const distanciaDecimal = distanciaKm !== null ? new Prisma.Decimal(distanciaKm) : null;
+
+                console.log(`📏 Salvando no banco: ${distanciaDecimal?.toString()} (tipo: ${typeof distanciaDecimal})`);
+
                 await prisma.corrida.upsert({
                     where: { idCorridaPlataforma: item.idCorridaPlataforma },
                     update: {
@@ -71,8 +76,8 @@ export class ImportService {
                         nomeCompleto: item.nomeCompleto,
                         email: item.email,
                         detalhamentoDespesa: item.detalhamentoDespesa,
-                        valorTotal: item.valorTotal,
-                        distanciaMetros: distanciaKm,  // Nome da coluna mantido, mas valor em KM
+                        valorTotal: new Prisma.Decimal(item.valorTotal),
+                        distanciaMetros: distanciaDecimal,
                         duracaoMinutos: item.duracaoMin,
                         enderecoPartida: item.enderecoPartida,
                         enderecoDestino: item.enderecoDestino,
@@ -95,8 +100,8 @@ export class ImportService {
                         nomeCompleto: item.nomeCompleto,
                         email: item.email,
                         detalhamentoDespesa: item.detalhamentoDespesa,
-                        valorTotal: item.valorTotal,
-                        distanciaMetros: distanciaKm,
+                        valorTotal: new Prisma.Decimal(item.valorTotal),
+                        distanciaMetros: distanciaDecimal,
                         duracaoMinutos: item.duracaoMin,
                         enderecoPartida: item.enderecoPartida,
                         enderecoDestino: item.enderecoDestino,

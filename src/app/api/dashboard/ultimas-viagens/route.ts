@@ -46,16 +46,13 @@ export async function GET(request: Request) {
         };
 
         const dados = viagens.map((v) => {
-            // 👇 CONVERTER Decimal PARA NUMBER
             let distancia = 0;
             if (v.distanciaMetros) {
-                const valorDistancia = Number(v.distanciaMetros);
-                // Se o valor for muito grande (> 1000), provavelmente está em metros, converte para km
-                if (valorDistancia > 1000) {
-                    distancia = Number((valorDistancia / 1000).toFixed(1));
+                const distanciaKm = v.distanciaMetros ? Number(v.distanciaMetros) : 0;
+                if (distanciaKm > 1000) {
+                    distancia = Number((distanciaKm / 1000).toFixed(1));
                 } else {
-                    // Senão, já está em km
-                    distancia = Number(valorDistancia.toFixed(1));
+                    distancia = Number(distanciaKm.toFixed(1));
                 }
             }
 
