@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { corridaStatus } from '@prisma/client';
 
 export async function GET(request: Request) {
     try {
@@ -9,12 +10,16 @@ export async function GET(request: Request) {
         const plataforma = searchParams.get('plataforma');
         const grupo = searchParams.get('grupo');
         const programa = searchParams.get('programa');
+        const statusParam = searchParams.get('status');
 
-        console.log('📅 Data Início:', dataInicioStr);
-        console.log('📅 Data Fim:', dataFimStr);
-        console.log('🎯 Plataforma:', plataforma);
-        console.log('👥 Grupo:', grupo);
-        console.log('📋 Programa:', programa);
+        console.log('📅 Parâmetros recebidos:', {
+            dataInicioStr,
+            dataFimStr,
+            plataforma,
+            grupo,
+            programa,
+            statusParam
+        });
 
         // Construir o where dinamicamente
         const where: any = {};
@@ -31,31 +36,42 @@ export async function GET(request: Request) {
             where.programa = programa;
         }
 
-        if (dataInicioStr) {
+        // 👇 FILTRO DE STATUS - CORRIGIDO
+        if (statusParam && statusParam !== 'todos') {
+            where.status = statusParam; // Como string, mas o Prisma aceita
+            console.log(`🔍 Aplicando filtro de status: ${statusParam}`);
+        }
+
+        if (dataInicioStr && dataInicioStr !== '') {
             const dataInicio = new Date(dataInicioStr);
-            dataInicio.setHours(0, 0, 0, 0);
-            where.dataSolicitacao = {
-                gte: dataInicio,
-            };
+            if (!isNaN(dataInicio.getTime())) {
+                dataInicio.setHours(0, 0, 0, 0);
+                where.dataSolicitacao = { gte: dataInicio };
+            }
         }
 
-        if (dataFimStr) {
+        if (dataFimStr && dataFimStr !== '') {
             const dataFim = new Date(dataFimStr);
-            dataFim.setHours(23, 59, 59, 999);
-            where.dataSolicitacao = {
-                ...where.dataSolicitacao,
-                lte: dataFim,
-            };
+            if (!isNaN(dataFim.getTime())) {
+                dataFim.setHours(23, 59, 59, 999);
+                where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            }
         }
 
-        console.log('🔍 Where clause:', JSON.stringify(where));
+        console.log('🔍 Where clause final:', JSON.stringify(where, null, 2));
 
         // Buscar corridas
         const corridas = await prisma.corrida.findMany({
             where: where,
         });
 
-        console.log('📊 Corridas encontradas:', corridas.length);
+        console.log(`📊 Corridas encontradas: ${corridas.length}`);
+
+        // Log dos primeiros status para debug
+        if (corridas.length > 0) {
+            const primeirosStatus = [...new Set(corridas.slice(0, 10).map(c => c.status))];
+            console.log(`📊 Status encontrados: ${primeirosStatus.join(', ')}`);
+        }
 
         // Calcular somatórios
         let valorTotal = 0;
@@ -69,7 +85,7 @@ export async function GET(request: Request) {
             if (corrida.distanciaMetros) {
                 distanciaTotal += Number(corrida.distanciaMetros);
             }
-            if (corrida.duracaoMinutos) {
+            if (corrida.duracaoMinutos && corrida.duracaoMinutos > 0) {
                 tempoTotal += corrida.duracaoMinutos;
             }
         }

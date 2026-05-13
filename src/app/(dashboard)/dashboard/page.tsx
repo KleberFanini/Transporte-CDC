@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { DateFilterModal } from "@/components/DateFilterModal";
 import { PlatformFilter } from "@/components/PlatformFilter";
+import { StatusFilter } from "@/components/StatusFilter";
 
 // Tipos para os dados do banco
 interface DashboardResumo {
@@ -80,6 +81,9 @@ export default function DashboardPage() {
     // Filtro APENAS para a aba de Funcionários (apenas grupo)
     const [filtroGrupo, setFiltroGrupo] = useState("todos");
 
+    // Filtro APENAS para a aba de Funcionários (apenas status)
+    const [status, setStatus] = useState("todos");
+
     // Estados para datas (global)
     const [dataInicio, setDataInicio] = useState("");
     const [dataFim, setDataFim] = useState("");
@@ -105,6 +109,7 @@ export default function DashboardPage() {
             if (dataFim) params.append('dataFim', dataFim);
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
             if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
+            if (status && status !== 'todos') params.append('status', status);
 
             const gruposRes = await fetch(`/api/dashboard/grupos?${params.toString()}`);
             const gruposData = await gruposRes.json();
@@ -153,6 +158,7 @@ export default function DashboardPage() {
             if (dataFim) params.append('dataFim', dataFim);
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
             if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
+            if (status && status !== 'todos') params.append('status', status);
 
             const resumoRes = await fetch(`/api/dashboard/resumo?${params.toString()}`);
             const resumoData = await resumoRes.json();
@@ -187,6 +193,7 @@ export default function DashboardPage() {
             if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
             if (programaGlobal && programaGlobal !== 'todos') params.append('programa', programaGlobal);
             if (filtroGrupo && filtroGrupo !== 'todos') params.append('grupo', filtroGrupo);
+            if (status && status !== 'todos') params.append('status', status);
 
             const funcionariosRes = await fetch(`/api/dashboard/funcionarios?${params.toString()}`);
             const funcionariosData = await funcionariosRes.json();
@@ -199,11 +206,11 @@ export default function DashboardPage() {
     useEffect(() => {
         carregarDados();
         carregarOpcoes();
-    }, [dataInicio, dataFim, plataforma, programaGlobal]);
+    }, [dataInicio, dataFim, plataforma, programaGlobal, status]);
 
     useEffect(() => {
         carregarFuncionarios();
-    }, [dataInicio, dataFim, plataforma, programaGlobal, filtroGrupo]);
+    }, [dataInicio, dataFim, plataforma, programaGlobal, filtroGrupo, status]);
 
     if (loading) {
         return (
@@ -227,6 +234,7 @@ export default function DashboardPage() {
                     {/* Filtros */}
                     <div className="flex flex-wrap gap-3 items-center">
                         <PlatformFilter value={plataforma} onChange={setPlataforma} />
+                        <StatusFilter value={status} onChange={setStatus} />
                         <select
                             className="border rounded-lg px-3 py-2 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer"
                             value={programaGlobal}

@@ -7,16 +7,18 @@ export async function GET(request: Request) {
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
         const plataforma = searchParams.get('plataforma');
+        const status = searchParams.get('status')
 
-        // Construir where dinamicamente
         const where: any = {};
 
-        // Filtro por plataforma
         if (plataforma && plataforma !== 'todos') {
             where.plataforma = plataforma;
         }
 
-        // Filtro por data
+        if (status && status !== 'todos') {
+            where.status = status;
+        }
+
         if (dataInicioStr || dataFimStr) {
             where.dataSolicitacao = {};
             if (dataInicioStr) {
@@ -43,7 +45,6 @@ export async function GET(request: Request) {
 
         console.log(`📊 Encontradas ${corridas.length} corridas`);
 
-        // Agrupar por serviço/tipo de despesa
         const despesasMap = new Map();
 
         corridas.forEach(c => {

@@ -32,6 +32,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DateFilterModal } from "@/components/DateFilterModal";
 import { PlatformFilter } from "@/components/PlatformFilter";
+import { StatusFilter } from "@/components/StatusFilter";
 
 interface Funcionario {
     id: string;
@@ -84,6 +85,7 @@ export default function UsuariosPage() {
     const [tempDataFim, setTempDataFim] = useState("");
     const [programaSelecionado, setProgramaSelecionado] = useState("todos");
     const [plataformaSelecionada, setPlataformaSelecionada] = useState("todos");
+    const [status, setStatus] = useState("todos");
 
     // Opções para o select de programas
     const [programasOptions, setProgramasOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os programas" }]);
@@ -95,6 +97,7 @@ export default function UsuariosPage() {
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
             if (plataformaSelecionada && plataformaSelecionada !== 'todos') params.append('plataforma', plataformaSelecionada);
+            if (status && status !== 'todos') params.append('status', status);
 
             const programasRes = await fetch(`/api/dashboard/programas-lista?${params.toString()}`);
             const programasData = await programasRes.json();
@@ -126,6 +129,9 @@ export default function UsuariosPage() {
             if (plataformaSelecionada && plataformaSelecionada !== 'todos') {
                 params.append('plataforma', plataformaSelecionada);
             }
+            if (status && status !== 'todos') {
+                params.append('status', status);
+            }
 
             const url = `/api/dashboard/funcionarios?${params.toString()}`;
             console.log('📡 URL:', url);
@@ -151,7 +157,7 @@ export default function UsuariosPage() {
     useEffect(() => {
         carregarOpcoes();
         carregarFuncionarios();
-    }, [dataInicio, dataFim, programaSelecionado, plataformaSelecionada]);
+    }, [dataInicio, dataFim, programaSelecionado, plataformaSelecionada, status]);
 
     // Carregar detalhes das corridas do funcionário
     const carregarDetalhesCorridas = async (funcionario: Funcionario) => {
@@ -166,6 +172,7 @@ export default function UsuariosPage() {
             if (dataFim) params.append('dataFim', dataFim);
             if (programaSelecionado && programaSelecionado !== 'todos') params.append('programa', programaSelecionado);
             if (plataformaSelecionada && plataformaSelecionada !== 'todos') params.append('plataforma', plataformaSelecionada);
+            if (status && status !== 'todos') params.append('status', status);
 
             const response = await fetch(`/api/dashboard/corridas-por-funcionario?${params.toString()}`);
             if (!response.ok) throw new Error("Erro ao carregar corridas");
@@ -243,6 +250,7 @@ export default function UsuariosPage() {
                     {/* Botões de filtro */}
                     <div className="flex flex-wrap gap-2 items-center">
                         <PlatformFilter value={plataformaSelecionada} onChange={setPlataformaSelecionada} />
+                        <StatusFilter value={status} onChange={setStatus} />
 
                         <select
                             className="border rounded-lg px-3 py-2 text-sm bg-[#F5F3EF] hover:bg-[#E8E4DF] transition-colors cursor-pointer min-w-[180px]"

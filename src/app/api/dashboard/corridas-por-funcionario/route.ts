@@ -35,7 +35,6 @@ export async function GET(request: Request) {
             where.programa = programa;
         }
 
-        // 👇 CORRIGIR TIPO DA PLATAFORMA
         if (plataformaParam && plataformaParam !== 'todos') {
             where.plataforma = plataformaParam as Plataforma;
         }
@@ -56,7 +55,6 @@ export async function GET(request: Request) {
             }
         }
 
-        // Buscar todas as corridas
         const todasCorridas = await prisma.corrida.findMany({
             where,
             orderBy: { dataSolicitacao: 'desc' },
@@ -76,7 +74,6 @@ export async function GET(request: Request) {
             },
         });
 
-        // Filtrar por nome normalizado
         const corridas = todasCorridas.filter(c =>
             normalizarTexto(c.nomeCompleto || '') === nomeNormalizado
         );

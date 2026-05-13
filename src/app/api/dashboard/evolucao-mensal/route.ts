@@ -7,14 +7,18 @@ export async function GET(request: Request) {
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
         const plataforma = searchParams.get('plataforma');
+        const status = searchParams.get('status')
 
-        // Construir where dinamicamente
         const where: any = {
             dataSolicitacao: { not: null },
         };
 
         if (plataforma && plataforma !== 'todos') {
             where.plataforma = plataforma;
+        }
+
+        if (status && status !== 'todos') {
+            where.status = status;
         }
 
         if (dataInicioStr) {
@@ -37,7 +41,6 @@ export async function GET(request: Request) {
             },
         });
 
-        // Agrupar por mês (usando ano e mês para ordenação correta)
         const mesesMap = new Map();
 
         corridas.forEach(c => {
@@ -48,7 +51,6 @@ export async function GET(request: Request) {
             const mes = data.getMonth();
             const nomeMes = data.toLocaleString('pt-BR', { month: 'short' });
 
-            // Criar chave para ordenação (YYYY-MM)
             const chave = `${ano}-${String(mes + 1).padStart(2, '0')}`;
             const label = `${nomeMes}. ${ano}`;
 
@@ -69,10 +71,8 @@ export async function GET(request: Request) {
             item.viagens++;
         });
 
-        // 👇 ORDENAR POR DATA (mais antigo para mais recente)
         const dados = Array.from(mesesMap.values())
             .sort((a, b) => {
-                // Ordenar por ano, depois por mês
                 if (a.ano !== b.ano) return a.ano - b.ano;
                 return a.mesNumero - b.mesNumero;
             })

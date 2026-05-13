@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { corridaStatus } from '@prisma/client';
 
-// Função para normalizar textos (remover acentos, converter para maiúsculo, etc.)
 function normalizarTexto(texto: string): string {
     if (!texto) return '';
     return texto
         .toUpperCase()
         .trim()
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+        .replace(/[\u0300-\u036f]/g, '');
 }
 
 export async function GET(request: Request) {
@@ -19,6 +19,7 @@ export async function GET(request: Request) {
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
         const plataforma = searchParams.get('plataforma');
+        const status = searchParams.get('status');
 
         console.log('📊 Parâmetros recebidos:', { grupo, programa, dataInicioStr, dataFimStr, plataforma });
 
@@ -36,6 +37,10 @@ export async function GET(request: Request) {
 
         if (programa && programa !== '' && programa !== 'todos') {
             where.programa = programa;
+        }
+
+        if (status && status !== 'todos') {
+            where.status = status;
         }
 
         // Filtro por data
@@ -75,7 +80,6 @@ export async function GET(request: Request) {
 
         console.log(`📊 Encontradas ${corridas.length} corridas`);
 
-        // 👇 AGRUPAR POR NOME NORMALIZADO
         const funcionariosMap = new Map();
 
         for (const c of corridas) {

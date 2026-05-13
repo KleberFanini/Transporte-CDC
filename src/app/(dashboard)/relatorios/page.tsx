@@ -36,6 +36,7 @@ import {
 } from "recharts";
 import { PlatformFilter } from "@/components/PlatformFilter";
 import { DateFilterModal } from "@/components/DateFilterModal";
+import { StatusFilter } from "@/components/StatusFilter";
 
 // Cores para os gráficos
 const COLORS = [
@@ -95,12 +96,16 @@ export default function RelatoriosPage() {
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [tempDataInicio, setTempDataInicio] = useState("");
     const [tempDataFim, setTempDataFim] = useState("");
+    const [status, setStatus] = useState("todos");
 
     // Construir URL com parâmetros
     const buildUrl = (baseUrl: string) => {
         const params = new URLSearchParams();
         if (plataforma && plataforma !== 'todos') {
             params.append('plataforma', plataforma);
+        }
+        if (status && status !== 'todos') {
+            params.append('status', status);
         }
         if (dataInicio) {
             params.append('dataInicio', dataInicio);
@@ -171,7 +176,7 @@ export default function RelatoriosPage() {
 
     useEffect(() => {
         carregarDados();
-    }, [plataforma, dataInicio, dataFim]);
+    }, [plataforma, dataInicio, dataFim, status]);
 
     const exportarCSV = (dados: any[], nomeArquivo: string, headers: string[]) => {
         const csvRows = [headers.join(",")];
@@ -221,6 +226,7 @@ export default function RelatoriosPage() {
                 </div>
                 <div className="flex flex-wrap gap-4 items-center">
                     <PlatformFilter value={plataforma} onChange={setPlataforma} />
+                    <StatusFilter value={status} onChange={setStatus} />
 
                     <Button
                         variant="outline"
