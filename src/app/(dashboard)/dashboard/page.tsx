@@ -330,7 +330,7 @@ export default function DashboardPage() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Funcionários Ativos</p>
+                                    <p className="text-sm font-medium text-gray-600">Funcionários com Viagem</p>
                                     <p className="text-2xl font-bold text-gray-900 mt-1">
                                         {resumo.funcionariosAtivos}
                                     </p>

@@ -12,7 +12,6 @@ const statusOptions = [
     { value: "todos", label: "Todos os status", icon: null },
     { value: "COMPLETA", label: "Completa", icon: CheckCircle, color: "text-green-600" },
     { value: "CANCELADA", label: "Cancelada", icon: XCircle, color: "text-red-600" },
-    { value: "EM_ANDAMENTO", label: "Em Andamento", icon: Clock, color: "text-yellow-600" },
     { value: "NAO_REALIZADA", label: "Não Realizada", icon: HelpCircle, color: "text-gray-600" },
     { value: "DESCONHECIDO", label: "Desconhecido", icon: HelpCircle, color: "text-gray-400" },
 ];
