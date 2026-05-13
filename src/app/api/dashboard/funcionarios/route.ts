@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Função para normalizar textos (remover acentos, converter para maiúsculo, etc.)
+function normalizarTexto(texto: string): string {
+    if (!texto) return '';
+    return texto
+        .toUpperCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -28,14 +38,12 @@ export async function GET(request: Request) {
             where.programa = programa;
         }
 
-        // Tratamento seguro das datas
+        // Filtro por data
         if (dataInicioStr && dataInicioStr !== '') {
             const dataInicio = new Date(dataInicioStr);
             if (!isNaN(dataInicio.getTime())) {
                 dataInicio.setHours(0, 0, 0, 0);
                 where.dataSolicitacao = { gte: dataInicio };
-            } else {
-                console.log(`⚠️ Data início inválida: ${dataInicioStr}`);
             }
         }
 
@@ -44,8 +52,6 @@ export async function GET(request: Request) {
             if (!isNaN(dataFim.getTime())) {
                 dataFim.setHours(23, 59, 59, 999);
                 where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
-            } else {
-                console.log(`⚠️ Data fim inválida: ${dataFimStr}`);
             }
         }
 
@@ -69,18 +75,21 @@ export async function GET(request: Request) {
 
         console.log(`📊 Encontradas ${corridas.length} corridas`);
 
+        // 👇 AGRUPAR POR NOME NORMALIZADO
         const funcionariosMap = new Map();
 
         for (const c of corridas) {
-            const key = c.nomeCompleto;
-            if (!key) continue;
+            const nomeOriginal = c.nomeCompleto;
+            if (!nomeOriginal) continue;
 
-            if (!funcionariosMap.has(key)) {
-                funcionariosMap.set(key, {
-                    id: key,
+            const chaveNormalizada = normalizarTexto(nomeOriginal);
+
+            if (!funcionariosMap.has(chaveNormalizada)) {
+                funcionariosMap.set(chaveNormalizada, {
+                    id: chaveNormalizada,
                     nome: c.nome || '',
                     sobrenome: c.sobrenome || '',
-                    nomeCompleto: key,
+                    nomeCompleto: nomeOriginal, // Mantém a versão original
                     email: c.email || '',
                     titulo: 'Funcionário',
                     grupo: c.grupo || '',
@@ -90,20 +99,36 @@ export async function GET(request: Request) {
                     pais: c.pais || '',
                     totalViagens: 0,
                     valorTotal: 0,
+                    // Armazenar diferentes variações do nome para referência
+                    variacoes: new Set([nomeOriginal]),
                 });
+            } else {
+                // Adicionar variação do nome se for diferente
+                const func = funcionariosMap.get(chaveNormalizada);
+                if (!func.variacoes.has(nomeOriginal)) {
+                    func.variacoes.add(nomeOriginal);
+                }
+                // Se o nome original for mais "legível" (não está em CAIXA ALTA), atualiza
+                if (nomeOriginal !== nomeOriginal.toUpperCase() && func.nomeCompleto === func.nomeCompleto.toUpperCase()) {
+                    func.nomeCompleto = nomeOriginal;
+                    func.nome = c.nome || '';
+                    func.sobrenome = c.sobrenome || '';
+                }
             }
 
-            const func = funcionariosMap.get(key);
+            const func = funcionariosMap.get(chaveNormalizada);
             func.totalViagens++;
             if (c.valorTotal) {
                 func.valorTotal += Number(c.valorTotal);
             }
         }
 
+        // Remover a propriedade temporária 'variacoes' antes de retornar
         const funcionarios = Array.from(funcionariosMap.values())
+            .map(({ variacoes, ...func }) => func)
             .sort((a, b) => b.valorTotal - a.valorTotal);
 
-        console.log(`📊 Total de funcionários: ${funcionarios.length}`);
+        console.log(`📊 Total de funcionários unificados: ${funcionarios.length}`);
 
         return NextResponse.json(funcionarios);
     } catch (error) {

@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Plataforma } from '@prisma/client';
+
+function normalizarTexto(texto: string): string {
+    if (!texto) return '';
+    return texto
+        .toUpperCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
 
 export async function GET(request: Request) {
     try {
@@ -8,6 +18,7 @@ export async function GET(request: Request) {
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
         const programa = searchParams.get('programa');
+        const plataformaParam = searchParams.get('plataforma');
 
         if (!nomeCompleto) {
             return NextResponse.json(
@@ -16,9 +27,18 @@ export async function GET(request: Request) {
             );
         }
 
-        const where: any = {
-            nomeCompleto: nomeCompleto,
-        };
+        const nomeNormalizado = normalizarTexto(nomeCompleto);
+
+        const where: any = {};
+
+        if (programa && programa !== 'todos') {
+            where.programa = programa;
+        }
+
+        // 👇 CORRIGIR TIPO DA PLATAFORMA
+        if (plataformaParam && plataformaParam !== 'todos') {
+            where.plataforma = plataformaParam as Plataforma;
+        }
 
         if (dataInicioStr && dataInicioStr !== '') {
             const dataInicio = new Date(dataInicioStr);
@@ -36,11 +56,8 @@ export async function GET(request: Request) {
             }
         }
 
-        if (programa && programa !== 'todos') {
-            where.programa = programa;
-        }
-
-        const corridas = await prisma.corrida.findMany({
+        // Buscar todas as corridas
+        const todasCorridas = await prisma.corrida.findMany({
             where,
             orderBy: { dataSolicitacao: 'desc' },
             select: {
@@ -55,8 +72,16 @@ export async function GET(request: Request) {
                 valorTotal: true,
                 distanciaMetros: true,
                 plataforma: true,
+                nomeCompleto: true,
             },
         });
+
+        // Filtrar por nome normalizado
+        const corridas = todasCorridas.filter(c =>
+            normalizarTexto(c.nomeCompleto || '') === nomeNormalizado
+        );
+
+        const MILHAS_PARA_KM = 1.60934;
 
         const dados = corridas.map(c => {
             let distanciaKm = 0;
@@ -64,9 +89,11 @@ export async function GET(request: Request) {
             if (c.distanciaMetros) {
                 const valorDistancia = Number(c.distanciaMetros);
 
-                distanciaKm = valorDistancia;
-
-                console.log(`Plataforma: ${c.plataforma}, Banco: ${valorDistancia}, Exibido: ${distanciaKm} km`);
+                if (c.plataforma === 'UBER') {
+                    distanciaKm = Number((valorDistancia * MILHAS_PARA_KM).toFixed(1));
+                } else {
+                    distanciaKm = Number(valorDistancia.toFixed(1));
+                }
             }
 
             return {
@@ -79,9 +106,11 @@ export async function GET(request: Request) {
                 servico: c.servico || '',
                 detalhamentoDespesa: c.detalhamentoDespesa || '',
                 valorTotal: c.valorTotal ? Number(c.valorTotal) : 0,
-                distanciaKm: c.distanciaMetros,
+                distanciaKm: distanciaKm,
             };
         });
+
+        console.log(`📏 Encontradas ${dados.length} corridas para ${nomeCompleto}`);
 
         return NextResponse.json(dados);
     } catch (error) {

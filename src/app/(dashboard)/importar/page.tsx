@@ -164,7 +164,7 @@ export default function ImportarPage() {
                             <Button
                                 onClick={handleImport}
                                 disabled={!file || loading}
-                                className="flex-1 bg-[#5D2A1A] hover:bg-[#4A2214]"
+                                className="flex-1 bg-[#5D2A1A] hover:bg-[#4A2214] text-white"
                             >
                                 {loading ? 'Importando...' : 'Importar Dados'}
                             </Button>
