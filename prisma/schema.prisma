@@ -86,3 +86,46 @@ model Corrida {
   @@index([dataSolicitacao])
   @@index([nomeCompleto])
 }
+
+model Translado {
+  id                    String    @id @default(uuid())
+  
+  // Dados principais do lançamento
+  tipo                  String?   
+  lancamento            String?   
+  responsavelCriacao    String?   
+  fornecedor            String?   
+  cnpjCpfFornecedor     String?   
+  historico             String?   
+  codigoContrato        String?   
+  
+  // Datas importantes
+  dataCadastro          DateTime? @db.Date
+  competencia           String?   
+  dataEmissao           DateTime? @db.Date
+  dataVencimento        DateTime? @db.Date
+  statusAprovacao       String?   
+  dataPagamento         DateTime? @db.Date
+  
+  // Valores financeiros
+  valorBruto            Float?    
+  valorLiquido          Float?    
+  
+  // Informações de pagamento
+  projetoOrigem         String?   // Projeto principal
+  valorPorProjeto       Float?    // Valor específico do projeto
+  tipoPagamento         String?   
+  numeroDocumento       String?   
+  
+  // Categorização
+  observacoesRateios    String?   // Mudado para corresponder ao Excel
+  observacoesGerais     String?   // Mudado para corresponder ao Excel
+  
+  criadoEm              DateTime  @default(now())
+  atualizadoEm          DateTime  @updatedAt
+
+  @@index([lancamento])
+  @@index([fornecedor])
+  @@index([competencia])
+  @@index([dataVencimento])
+}

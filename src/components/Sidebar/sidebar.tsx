@@ -12,11 +12,14 @@ import {
   User,
   BarChart4,
   Users,
+  ChevronDown,
+  ChevronUp,
+  Car,
+  Plane,
   Upload
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { validarToken } from "@/lib/jwt";
 
 interface UserInfo {
   id: string;
@@ -25,18 +28,68 @@ interface UserInfo {
   nome?: string;
 }
 
-const menuItems = [
+interface SubMenuItem {
+  title: string;
+  path: string;
+  icon?: any;
+  roles?: string[];
+}
+
+interface MenuItem {
+  title: string;
+  path?: string;
+  icon: any;
+  roles: string[];
+  subItems?: SubMenuItem[];
+}
+
+const menuItems: MenuItem[] = [
+
   {
-    title: "Dashboard",
-    path: "/dashboard",
-    icon: LayoutDashboard,
+    title: "Uber e 99",
+    icon: Car,
     roles: ["admin", "visualizador"],
+    subItems: [
+      {
+        title: "Dashboard Uber/99",
+        path: "/dashboard",
+        icon: LayoutDashboard
+      },
+      {
+        title: "Relatórios Uber/99",
+        path: "/relatorios",
+        icon: BarChart4
+      },
+      {
+        title: "Importar Uber/99",
+        path: "/importar",
+        icon: Upload,
+        roles: ["admin"]
+      }
+    ],
   },
   {
-    title: "Relatórios",
-    path: "/relatorios",
-    icon: BarChart4,
+    title: "Translado",
+    icon: Plane,
     roles: ["admin", "visualizador"],
+    subItems: [
+      {
+        title: "Dashboard Translado",
+        path: "/translado/dashboard",
+        icon: LayoutDashboard
+      },
+      {
+        title: "Relatórios Translado",
+        path: "/translado/relatorios",
+        icon: BarChart4
+      },
+      {
+        title: "Importar Translados",
+        path: "/translado/importar",
+        icon: Upload,
+        roles: ["admin"]
+      },
+    ],
   },
   {
     title: "Funcionários",
@@ -49,12 +102,6 @@ const menuItems = [
     path: "/admin",
     icon: Shield,
     roles: ["admin"],
-  },
-  {
-    title: "Importar",
-    path: "/importar",
-    icon: Upload,
-    roles: ["admin"],
   }
 ];
 
@@ -64,15 +111,13 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
-    // Buscar informações do usuário do token
     const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
     if (token) {
       try {
-        // Decodificar token (aqui você pode usar a função validarToken do backend)
-        // Como é client-side, vamos simular ou buscar de outro lugar
         const tokenData = JSON.parse(atob(token.split('.')[1]));
         setUser({
           id: tokenData.sub,
@@ -87,7 +132,31 @@ export default function Sidebar() {
     setLoading(false);
   }, []);
 
-  // Filtra itens baseado no perfil do usuário
+  // Auto-expand menus based on current path
+  useEffect(() => {
+    if (pathname) {
+      const newOpenMenus: { [key: string]: boolean } = {};
+      menuItems.forEach(item => {
+        if (item.subItems) {
+          const isActive = item.subItems.some(subItem =>
+            pathname === subItem.path || pathname.startsWith(subItem.path + "/")
+          );
+          if (isActive) {
+            newOpenMenus[item.title] = true;
+          }
+        }
+      });
+      setOpenMenus(prev => ({ ...prev, ...newOpenMenus }));
+    }
+  }, [pathname]);
+
+  const toggleMenu = (menuTitle: string) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [menuTitle]: !prev[menuTitle]
+    }));
+  };
+
   const filteredItems = menuItems.filter((item) =>
     user ? item.roles.includes(user.perfil) : []
   );
@@ -136,23 +205,79 @@ export default function Sidebar() {
         {/* Menu */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {filteredItems.map((item) => {
-            const active =
-              pathname === item.path || pathname.startsWith(item.path + "/");
+            const hasSubItems = item.subItems && item.subItems.length > 0;
+            const isOpen = openMenus[item.title];
+
+            // Check if the main item has a direct path and is active
+            const isDirectActive = item.path ?
+              (pathname === item.path || pathname.startsWith(item.path + "/")) :
+              false;
 
             const Icon = item.icon;
 
             return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${active
-                  ? "bg-[#F4511E] font-medium"
-                  : "hover:bg-white/10 text-white/80"
-                  }`}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.title}</span>}
-              </Link>
+              <div key={item.title}>
+                {hasSubItems ? (
+                  <>
+                    {/* Dropdown Toggle Button */}
+                    <button
+                      onClick={() => !collapsed && toggleMenu(item.title)}
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${collapsed ? "justify-center" : ""
+                        } hover:bg-white/10 text-white/80`}
+                      title={collapsed ? item.title : undefined}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </div>
+                      {!collapsed && (
+                        isOpen ?
+                          <ChevronUp className="h-4 w-4" /> :
+                          <ChevronDown className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    {/* Submenu Items */}
+                    {!collapsed && isOpen && (
+                      <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
+                        {item.subItems!.map((subItem) => {
+                          const isSubActive =
+                            pathname === subItem.path ||
+                            pathname.startsWith(subItem.path + "/");
+                          const SubIcon = subItem.icon;
+
+                          return (
+                            <Link
+                              key={subItem.path}
+                              href={subItem.path}
+                              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSubActive
+                                ? "bg-[#F4511E] font-medium"
+                                : "hover:bg-white/10 text-white/70"
+                                }`}
+                            >
+                              {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
+                              <span>{subItem.title}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Normal Menu Item */
+                  <Link
+                    href={item.path!}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${isDirectActive
+                      ? "bg-[#F4511E] font-medium"
+                      : "hover:bg-white/10 text-white/80"
+                      }`}
+                    title={collapsed ? item.title : undefined}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </Link>
+                )}
+              </div>
             );
           })}
         </nav>
