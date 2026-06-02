@@ -38,8 +38,7 @@ const roleLabels: Record<string, string> = {
 
 export default function Topbar({
     showMenuButton = false,
-    onMenuClick,
-    title = "Painel CDC",
+    onMenuClick
 }: TopbarProps) {
     const router = useRouter();
     const [user, setUser] = useState<UserInfo | null>(null);
@@ -100,9 +99,6 @@ export default function Topbar({
                             <Menu className="h-5 w-5 text-gray-600" />
                         </button>
                     )}
-                    <h1 className="text-xl font-semibold text-gray-800">
-                        {title}
-                    </h1>
                 </div>
                 <Button
                     variant="ghost"
@@ -130,9 +126,6 @@ export default function Topbar({
                         <Menu className="h-5 w-5 text-gray-600" />
                     </button>
                 )}
-                <h1 className="text-xl font-semibold text-gray-800">
-                    {title}
-                </h1>
             </div>
 
             {/* Lado direito */}

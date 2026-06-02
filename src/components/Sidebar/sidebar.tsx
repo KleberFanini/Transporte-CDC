@@ -136,22 +136,30 @@ export default function Sidebar() {
     setLoading(false);
   }, []);
 
-  // Auto-expand menus based on current path
+  // Função para verificar se o usuário pode ver um item
+  const canViewItem = (item: MenuItem | SubMenuItem) => {
+    if (!user) return false;
+    if (!item.roles) return true;
+    return item.roles.includes(user.perfil);
+  };
+
+  // Auto-expand menus based on current path (sem depender do user para expansão)
   useEffect(() => {
-    if (pathname) {
-      const newOpenMenus: { [key: string]: boolean } = {};
-      menuItems.forEach(item => {
-        if (item.subItems) {
-          const isActive = item.subItems.some(subItem =>
-            pathname === subItem.path || pathname.startsWith(subItem.path + "/")
-          );
-          if (isActive) {
-            newOpenMenus[item.title] = true;
-          }
+    if (!pathname) return;
+
+    const newOpenMenus: { [key: string]: boolean } = {};
+    menuItems.forEach(item => {
+      if (item.subItems) {
+        // Verifica se algum subitem está ativo (sem filtrar por permissão aqui)
+        const isActive = item.subItems.some(subItem =>
+          pathname === subItem.path || pathname.startsWith(subItem.path + "/")
+        );
+        if (isActive) {
+          newOpenMenus[item.title] = true;
         }
-      });
-      setOpenMenus(prev => ({ ...prev, ...newOpenMenus }));
-    }
+      }
+    });
+    setOpenMenus(prev => ({ ...prev, ...newOpenMenus }));
   }, [pathname]);
 
   const toggleMenu = (menuTitle: string) => {
@@ -161,9 +169,43 @@ export default function Sidebar() {
     }));
   };
 
-  const filteredItems = menuItems.filter((item) =>
-    user ? item.roles.includes(user.perfil) : []
-  );
+  // Filtrar os menus principais que o usuário tem acesso
+  const filteredItems = menuItems.filter((item) => {
+    if (!user) return false; // Aguarda o usuário carregar
+    if (!item.roles) return true;
+    return item.roles.includes(user.perfil);
+  });
+
+  // Mostrar loading enquanto verifica autenticação
+  if (loading) {
+    return (
+      <aside
+        className={`fixed left-0 top-0 h-screen bg-[#5D2A1A] text-white transition-all duration-300 flex flex-col z-30 ${collapsed ? "w-16" : "w-60"}`}
+      >
+        <div className="flex items-center h-16 px-4 border-b border-white/10">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-12 h-12 relative shrink-0">
+              <Image
+                src="/logo-transporte.png"
+                alt="CDC Transporte"
+                width={100}
+                height={100}
+                className="object-contain"
+              />
+            </div>
+            {!collapsed && (
+              <span className="text-sm font-semibold whitespace-nowrap">
+                CDC Transporte
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <>
@@ -192,7 +234,7 @@ export default function Sidebar() {
         </div>
 
         {/* Informações do usuário */}
-        {!loading && user && !collapsed && (
+        {user && !collapsed && (
           <div className="px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[#F4511E] flex items-center justify-center">
@@ -241,29 +283,31 @@ export default function Sidebar() {
                       )}
                     </button>
 
-                    {/* Submenu Items */}
+                    {/* Submenu Items - Filtrar por permissão */}
                     {!collapsed && isOpen && (
                       <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
-                        {item.subItems!.map((subItem) => {
-                          const isSubActive =
-                            pathname === subItem.path ||
-                            pathname.startsWith(subItem.path + "/");
-                          const SubIcon = subItem.icon;
+                        {item.subItems!
+                          .filter(subItem => canViewItem(subItem))
+                          .map((subItem) => {
+                            const isSubActive =
+                              pathname === subItem.path ||
+                              pathname.startsWith(subItem.path + "/");
+                            const SubIcon = subItem.icon;
 
-                          return (
-                            <Link
-                              key={subItem.path}
-                              href={subItem.path}
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSubActive
-                                ? "bg-[#F4511E] font-medium"
-                                : "hover:bg-white/10 text-white/70"
-                                }`}
-                            >
-                              {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
-                              <span>{subItem.title}</span>
-                            </Link>
-                          );
-                        })}
+                            return (
+                              <Link
+                                key={subItem.path}
+                                href={subItem.path}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSubActive
+                                  ? "bg-[#F4511E] font-medium"
+                                  : "hover:bg-white/10 text-white/70"
+                                  }`}
+                              >
+                                {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
+                                <span>{subItem.title}</span>
+                              </Link>
+                            );
+                          })}
                       </div>
                     )}
                   </>
