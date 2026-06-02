@@ -14,11 +14,10 @@ interface UserInfo {
     perfil: string;
 }
 
-// Props que o Topbar pode receber
 interface TopbarProps {
-    showMenuButton?: boolean; // Para mobile, mostrar botão de menu
-    onMenuClick?: () => void; // Função para abrir/fechar sidebar
-    title?: string; // Título personalizado
+    showMenuButton?: boolean;
+    onMenuClick?: () => void;
+    title?: string;
 }
 
 // Mapeamento de cores para cada perfil
@@ -73,15 +72,9 @@ export default function Topbar({
         router.push('/auth');
     };
 
-    // Se não tem usuário e não está carregando, não renderiza nada
-    // (o middleware já deve redirecionar, mas é uma segurança extra)
-    if (!loading && !user) {
-        return null;
-    }
-
     if (loading) {
         return (
-            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm margin-left">
+            <header className="h-16 w-full bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
                 <div className="flex items-center gap-3">
                     {showMenuButton && (
                         <div className="lg:hidden w-8 h-8 bg-gray-200 animate-pulse rounded" />
@@ -93,10 +86,39 @@ export default function Topbar({
         );
     }
 
-    // Só renderiza o conteúdo se tiver usuário
+    // Se não tem usuário, mostra apenas o header básico (sem informações)
+    if (!user) {
+        return (
+            <header className="h-16 w-full bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                    {showMenuButton && (
+                        <button
+                            onClick={onMenuClick}
+                            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+                            aria-label="Abrir menu"
+                        >
+                            <Menu className="h-5 w-5 text-gray-600" />
+                        </button>
+                    )}
+                    <h1 className="text-xl font-semibold text-gray-800">
+                        {title}
+                    </h1>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push('/auth')}
+                    className="text-gray-600 hover:text-[#5D2A1A] hover:bg-gray-100"
+                >
+                    <LogOut className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Login</span>
+                </Button>
+            </header>
+        );
+    }
+
     return (
-        // No return do componente Topbar
-        <header className="h-16 w-full bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm sticky top-0 z-10">
+        <header className="h-16 w-full bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
             {/* Lado esquerdo */}
             <div className="flex items-center gap-3">
                 {showMenuButton && (
@@ -115,53 +137,49 @@ export default function Topbar({
 
             {/* Lado direito */}
             <div className="flex items-center gap-4">
-                {user && (
-                    <>
-                        {/* Versão desktop */}
-                        <div className="hidden sm:flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-[#5D2A1A] flex items-center justify-center text-white">
-                                    <span className="text-sm font-medium">
-                                        {user.nome.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-700">
-                                        {user.nome}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                        {user.email}
-                                    </span>
-                                </div>
-                            </div>
-                            <Badge
-                                variant="outline"
-                                className={`${roleBadgeClass[user.perfil] || "bg-gray-100 text-gray-700"} font-medium`}
-                            >
-                                {roleLabels[user.perfil] || user.perfil}
-                            </Badge>
+                {/* Versão desktop */}
+                <div className="hidden sm:flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-[#5D2A1A] flex items-center justify-center text-white">
+                            <span className="text-sm font-medium">
+                                {user.nome.charAt(0).toUpperCase()}
+                            </span>
                         </div>
-
-                        {/* Versão mobile */}
-                        <div className="sm:hidden flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-[#5D2A1A] flex items-center justify-center text-white">
-                                <span className="text-sm font-medium">
-                                    {user.nome.charAt(0).toUpperCase()}
-                                </span>
-                            </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-700">
+                                {user.nome}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                                {user.email}
+                            </span>
                         </div>
+                    </div>
+                    <Badge
+                        variant="outline"
+                        className={`${roleBadgeClass[user.perfil] || "bg-gray-100 text-gray-700"} font-medium`}
+                    >
+                        {roleLabels[user.perfil] || user.perfil}
+                    </Badge>
+                </div>
 
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleLogout}
-                            className="text-gray-600 hover:text-red-600 hover:bg-red-50"
-                        >
-                            <LogOut className="h-4 w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Sair</span>
-                        </Button>
-                    </>
-                )}
+                {/* Versão mobile */}
+                <div className="sm:hidden flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[#5D2A1A] flex items-center justify-center text-white">
+                        <span className="text-sm font-medium">
+                            {user.nome.charAt(0).toUpperCase()}
+                        </span>
+                    </div>
+                </div>
+
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-gray-600 hover:text-red-600 hover:bg-red-50"
+                >
+                    <LogOut className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Sair</span>
+                </Button>
             </div>
         </header>
     );

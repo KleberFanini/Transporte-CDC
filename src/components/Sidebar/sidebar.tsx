@@ -53,12 +53,14 @@ const menuItems: MenuItem[] = [
       {
         title: "Dashboard Uber/99",
         path: "/dashboard",
-        icon: LayoutDashboard
+        icon: LayoutDashboard,
+        roles: ["admin", "visualizador"]
       },
       {
         title: "Relatórios Uber/99",
         path: "/relatorios",
-        icon: BarChart4
+        icon: BarChart4,
+        roles: ["admin", "visualizador"]
       },
       {
         title: "Importar Uber/99",
@@ -76,12 +78,14 @@ const menuItems: MenuItem[] = [
       {
         title: "Dashboard Translado",
         path: "/translado/dashboard",
-        icon: LayoutDashboard
+        icon: LayoutDashboard,
+        roles: ["admin", "visualizador"]
       },
       {
         title: "Relatórios Translado",
         path: "/translado/relatorios",
-        icon: BarChart4
+        icon: BarChart4,
+        roles: ["admin", "visualizador"]
       },
       {
         title: "Importar Translados",
