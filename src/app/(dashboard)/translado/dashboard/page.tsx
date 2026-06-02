@@ -39,6 +39,7 @@ import { DateFilterModal } from '@/components/DateFilterModal';
 import { Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { ProjectFilter } from '@/components/ProjectFilter';
 
 const COLORS = ['#5D2A1A', '#8B4513', '#A0522D', '#CD853F', '#DEB887'];
 
@@ -76,11 +77,16 @@ export default function TransladoDashboardPage() {
   const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
   const [tempDataInicio, setTempDataInicio] = useState("");
   const [tempDataFim, setTempDataFim] = useState("");
+  const [projetosList, setProjetosList] = useState<string[]>([]);
+  const [projetoSelecionado, setProjetoSelecionado] = useState("todos");
 
   const buildUrl = (baseUrl: string) => {
     const params = new URLSearchParams();
     if (dataInicio) params.append("dataInicio", dataInicio);
     if (dataFim) params.append("dataFim", dataFim);
+    if (projetoSelecionado && projetoSelecionado !== 'todos') {
+      params.append("projeto", projetoSelecionado);
+    }
     const queryString = params.toString();
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   };
@@ -99,8 +105,30 @@ export default function TransladoDashboardPage() {
   const handleResetFiltro = () => {
     setDataInicio("");
     setDataFim("");
-    toast.info("Filtro de data removido. Mostrando todos os dados.");
+    setProjetoSelecionado("todos");
+    toast.info("Filtros removidos. Mostrando todos os dados.");
   };
+
+  // Carregar lista de projetos para o filtro
+  const carregarProjetos = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dataInicio) params.append("dataInicio", dataInicio);
+      if (dataFim) params.append("dataFim", dataFim);
+
+      const response = await fetch(`/api/translados/projetos-lista?${params.toString()}`);
+      if (response.ok) {
+        const projetos = await response.json();
+        setProjetosList(projetos);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar projetos:", error);
+    }
+  };
+
+  useEffect(() => {
+    carregarProjetos();
+  }, [dataInicio, dataFim]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -121,7 +149,7 @@ export default function TransladoDashboardPage() {
     };
 
     fetchStats();
-  }, [dataInicio, dataFim]);
+  }, [dataInicio, dataFim, projetoSelecionado]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -150,13 +178,21 @@ export default function TransladoDashboardPage() {
           <p className="text-gray-600 mt-1">
             Visão geral dos translados e despesas
           </p>
-          {(dataInicio || dataFim) && (
+          {(dataInicio || dataFim || projetoSelecionado !== "todos") && (
             <p className="text-sm text-blue-600 mt-1">
-              Período: {dataInicio || "início"} até {dataFim || "hoje"}
+              {dataInicio && `Data início: ${dataInicio}`}
+              {dataFim && ` até ${dataFim}`}
+              {projetoSelecionado !== "todos" && ` • Projeto: ${projetoSelecionado}`}
             </p>
           )}
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <ProjectFilter
+            value={projetoSelecionado}
+            onChange={setProjetoSelecionado}
+            projetos={projetosList}
+          />
+
           <Button
             variant="outline"
             size="sm"
@@ -166,16 +202,18 @@ export default function TransladoDashboardPage() {
             <Filter className="h-4 w-4" />
             Filtrar por Data
           </Button>
-          {(dataInicio || dataFim) && (
+
+          {(dataInicio || dataFim || projetoSelecionado !== "todos") && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleResetFiltro}
               className="text-red-600 hover:text-red-700"
             >
-              Limpar
+              Limpar Filtros
             </Button>
           )}
+
           <Link href="/translado/relatorios">
             <Button variant="outline" size="sm">
               Ver Relatórios Detalhados →
