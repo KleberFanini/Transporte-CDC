@@ -1,7 +1,8 @@
 {
-    "build": {
-        "env": {
-            "PRISMA_GENERATE": "true"
-        }
+    "buildCommand": "prisma generate && prisma db push && next build",
+    "installCommand": "npm install",
+    "framework": "nextjs",
+    "env": {
+        "DATABASE_URL": "@database_url"
     }
 }

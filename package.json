@@ -3,12 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && next dev --webpack",
+    "dev": "next dev --webpack",
     "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma db push && next build",
     "start": "next start",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate deploy",
-    "db:generate": "prisma generate",
     "lint": "biome check",
     "format": "biome format --write",
     "postinstall": "prisma generate"
