@@ -6,23 +6,31 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const dataInicio = searchParams.get("dataInicio");
         const dataFim = searchParams.get("dataFim");
+        const projeto = searchParams.get("projeto");
+
+        console.log("Parâmetros recebidos:", { dataInicio, dataFim, projeto });
 
         // Construir filtro de data
         const where: any = {};
 
-        if (dataInicio) {
+        if (dataInicio && dataInicio !== "") {
             const inicioDate = new Date(dataInicio);
             inicioDate.setHours(0, 0, 0, 0);
             where.dataVencimento = { gte: inicioDate };
         }
 
-        if (dataFim) {
+        if (dataFim && dataFim !== "") {
             const fimDate = new Date(dataFim);
             fimDate.setHours(23, 59, 59, 999);
             where.dataVencimento = { ...where.dataVencimento, lte: fimDate };
         }
 
-        console.log("Filtros aplicados:", { dataInicio, dataFim, where });
+        // Adicionar filtro de projeto
+        if (projeto && projeto !== "todos" && projeto !== "") {
+            where.projetoOrigem = projeto;
+        }
+
+        console.log("Where clause:", where);
 
         // Total de translados
         const totalTranslados = await prisma.translado.count({ where });

@@ -88,6 +88,7 @@ export default function TransladoDashboardPage() {
       params.append("projeto", projetoSelecionado);
     }
     const queryString = params.toString();
+    console.log("URL gerada:", queryString ? `${baseUrl}?${queryString}` : baseUrl);
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   };
 
@@ -134,8 +135,13 @@ export default function TransladoDashboardPage() {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const response = await fetch(buildUrl("/api/translados/stats"));
+        const url = buildUrl("/api/translados/stats");
+        console.log("Fetching URL:", url);
+
+        const response = await fetch(url);
         const result = await response.json();
+
+        console.log("Resultado da API:", result);
 
         if (result.success) {
           setData(result.data);
