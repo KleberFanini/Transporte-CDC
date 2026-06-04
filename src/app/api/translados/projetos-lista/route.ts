@@ -3,28 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
     try {
-        const { searchParams } = new URL(req.url);
-        const dataInicio = searchParams.get("dataInicio");
-        const dataFim = searchParams.get("dataFim");
-
-        const where: any = {};
-
-        if (dataInicio && dataInicio !== "") {
-            const inicioDate = new Date(dataInicio);
-            inicioDate.setHours(0, 0, 0, 0);
-            where.dataVencimento = { gte: inicioDate };
-        }
-
-        if (dataFim && dataFim !== "") {
-            const fimDate = new Date(dataFim);
-            fimDate.setHours(23, 59, 59, 999);
-            where.dataVencimento = { ...where.dataVencimento, lte: fimDate };
-        }
-
-        // Buscar projetos distintos que não sejam nulos ou vazios
+        // REMOVA os parâmetros de data - queremos TODOS os projetos
+        // Buscar projetos distintos que não sejam nulos ou vazios, SEM FILTRO DE DATA
         const projetos = await prisma.translado.findMany({
             where: {
-                ...where,
                 projetoOrigem: {
                     not: null
                 }
@@ -41,7 +23,7 @@ export async function GET(req: NextRequest) {
             .filter(p => p && p !== null && p !== "" && p !== "null" && p !== "undefined")
             .sort();
 
-        console.log("Projetos encontrados:", projetosFiltrados);
+        console.log("Todos os projetos encontrados:", projetosFiltrados);
 
         return NextResponse.json(projetosFiltrados);
     } catch (error) {

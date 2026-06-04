@@ -6,11 +6,15 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const dataInicio = searchParams.get("dataInicio");
         const dataFim = searchParams.get("dataFim");
+        const status = searchParams.get("status");
+        const projeto = searchParams.get("projeto");
         const page = parseInt(searchParams.get("page") || "1");
         const pageSize = 20;
         const skip = (page - 1) * pageSize;
 
-        // Construir filtro de data
+        console.log("Parâmetros recebidos na API:", { dataInicio, dataFim, status, projeto, page });
+
+        // Construir filtro
         const where: any = {};
 
         if (dataInicio && dataInicio !== "") {
@@ -25,7 +29,15 @@ export async function GET(req: NextRequest) {
             where.dataVencimento = { ...where.dataVencimento, lte: fimDate };
         }
 
-        console.log("Filtros aplicados na lista:", { dataInicio, dataFim, where });
+        if (status && status !== "todos" && status !== "") {
+            where.statusAprovacao = status;
+        }
+
+        if (projeto && projeto !== "todos" && projeto !== "") {
+            where.projetoOrigem = projeto;
+        }
+
+        console.log("Where clause:", JSON.stringify(where, null, 2));
 
         const [translados, total] = await Promise.all([
             prisma.translado.findMany({
@@ -38,6 +50,8 @@ export async function GET(req: NextRequest) {
             }),
             prisma.translado.count({ where }),
         ]);
+
+        console.log(`Encontrados ${total} registros`);
 
         return NextResponse.json({
             translados,

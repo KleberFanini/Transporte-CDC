@@ -62,7 +62,6 @@ interface TransladoItem {
 
 export default function TransladoRelatoriosPage() {
     const [translados, setTranslados] = useState<TransladoItem[]>([]);
-    const [filteredTranslados, setFilteredTranslados] = useState<TransladoItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -73,6 +72,7 @@ export default function TransladoRelatoriosPage() {
     const [statusFilter, setStatusFilter] = useState("todos");
     const [projetoFilter, setProjetoFilter] = useState("todos");
     const [projetos, setProjetos] = useState<string[]>([]);
+    const [loadingProjetos, setLoadingProjetos] = useState(true);
 
     // Filtro de data
     const [dataInicio, setDataInicio] = useState("");
@@ -86,13 +86,43 @@ export default function TransladoRelatoriosPage() {
 
     const itemsPerPage = 20;
 
+    // Carregar TODOS os projetos (independente dos filtros)
+    const carregarProjetos = async () => {
+        setLoadingProjetos(true);
+        try {
+            // Busca todos os projetos sem filtros de data
+            const response = await fetch("/api/translados/projetos-lista");
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Projetos carregados:", data);
+                setProjetos(data);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar projetos:", error);
+        } finally {
+            setLoadingProjetos(false);
+        }
+    };
+
     const buildUrl = (baseUrl: string) => {
         const params = new URLSearchParams();
-        if (dataInicio) params.append("dataInicio", dataInicio);
-        if (dataFim) params.append("dataFim", dataFim);
+        if (dataInicio && dataInicio !== "") {
+            params.append("dataInicio", dataInicio);
+        }
+        if (dataFim && dataFim !== "") {
+            params.append("dataFim", dataFim);
+        }
+        if (statusFilter && statusFilter !== "todos") {
+            params.append("status", statusFilter);
+        }
+        if (projetoFilter && projetoFilter !== "todos" && projetoFilter !== "") {
+            params.append("projeto", projetoFilter);
+        }
         params.append("page", currentPage.toString());
         const queryString = params.toString();
-        return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+        const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+        console.log("URL gerada:", url);
+        return url;
     };
 
     const handleAbrirFiltro = () => {
@@ -110,8 +140,10 @@ export default function TransladoRelatoriosPage() {
     const handleResetFiltro = () => {
         setDataInicio("");
         setDataFim("");
+        setStatusFilter("todos");
+        setProjetoFilter("todos");
         setCurrentPage(1);
-        toast.info("Filtro de data removido.");
+        toast.info("Filtros removidos. Mostrando todos os dados.");
     };
 
     const handleVerDetalhes = (translado: TransladoItem) => {
@@ -122,18 +154,16 @@ export default function TransladoRelatoriosPage() {
     const carregarDados = async () => {
         setLoading(true);
         try {
-            const response = await fetch(buildUrl("/api/translados/lista"));
+            const url = buildUrl("/api/translados/lista");
+            console.log("Fetching URL:", url);
+
+            const response = await fetch(url);
             const data = await response.json();
 
             if (data.translados) {
                 setTranslados(data.translados);
-                setFilteredTranslados(data.translados);
                 setTotalItems(data.total);
                 setTotalPages(data.totalPages);
-
-                // Extrair projetos únicos para filtro
-                const projetosUnicos = Array.from(new Set(data.translados.map((t: TransladoItem) => t.projetoOrigem).filter(Boolean)));
-                setProjetos(projetosUnicos as string[]);
             }
         } catch (error) {
             console.error("Erro ao carregar dados:", error);
@@ -154,6 +184,7 @@ export default function TransladoRelatoriosPage() {
         }
     };
 
+    // Filtrar pelo searchTerm (client-side - apenas para busca textual)
     const transladosFiltrados = translados.filter((item) =>
         item.lancamento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.fornecedor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -161,32 +192,15 @@ export default function TransladoRelatoriosPage() {
         item.historico?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Carregar projetos na montagem do componente
+    useEffect(() => {
+        carregarProjetos();
+    }, []);
+
+    // Carregar dados quando os filtros mudarem
     useEffect(() => {
         carregarDados();
-    }, [currentPage, dataInicio, dataFim]);
-
-    // Aplicar filtros locais
-    useEffect(() => {
-        let filtered = [...translados];
-
-        if (searchTerm) {
-            filtered = filtered.filter(t =>
-                t.lancamento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.fornecedor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.projetoOrigem?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        if (statusFilter !== "todos") {
-            filtered = filtered.filter(t => t.statusAprovacao === statusFilter);
-        }
-
-        if (projetoFilter !== "todos") {
-            filtered = filtered.filter(t => t.projetoOrigem === projetoFilter);
-        }
-
-        setFilteredTranslados(filtered);
-    }, [searchTerm, statusFilter, projetoFilter, translados]);
+    }, [currentPage, dataInicio, dataFim, statusFilter, projetoFilter]);
 
     const exportarCSV = () => {
         const headers = [
@@ -208,7 +222,7 @@ export default function TransladoRelatoriosPage() {
         ];
 
         const csvRows = [headers.join(",")];
-        for (const row of filteredTranslados) {
+        for (const row of transladosFiltrados) {
             const values = headers.map(header => {
                 let value = "";
                 switch (header) {
@@ -257,6 +271,9 @@ export default function TransladoRelatoriosPage() {
         return new Date(date).toLocaleDateString("pt-BR");
     };
 
+    // Verificar se há filtros ativos
+    const hasActiveFilters = dataInicio || dataFim || statusFilter !== "todos" || projetoFilter !== "todos";
+
     if (loading && currentPage === 1) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -275,9 +292,12 @@ export default function TransladoRelatoriosPage() {
                     <p className="text-gray-600">
                         Lista detalhada de todos os translados ({totalItems} registros)
                     </p>
-                    {(dataInicio || dataFim) && (
+                    {hasActiveFilters && (
                         <p className="text-sm text-blue-600 mt-1">
-                            Período: {dataInicio || "início"} até {dataFim || "hoje"}
+                            {dataInicio && `Data início: ${dataInicio}`}
+                            {dataFim && ` até ${dataFim}`}
+                            {statusFilter !== "todos" && ` • Status: ${statusFilter}`}
+                            {projetoFilter !== "todos" && ` • Projeto: ${projetoFilter}`}
                         </p>
                     )}
                 </div>
@@ -291,14 +311,14 @@ export default function TransladoRelatoriosPage() {
                         <Filter className="h-4 w-4" />
                         Filtrar por Data
                     </Button>
-                    {(dataInicio || dataFim) && (
+                    {hasActiveFilters && (
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleResetFiltro}
                             className="text-red-600 hover:text-red-700"
                         >
-                            Limpar Data
+                            Limpar Filtros
                         </Button>
                     )}
                     <Button
@@ -353,12 +373,12 @@ export default function TransladoRelatoriosPage() {
 
                         <div>
                             <label className="text-sm font-medium mb-2 block">Projeto</label>
-                            <Select value={projetoFilter} onValueChange={setProjetoFilter}>
+                            <Select value={projetoFilter} onValueChange={setProjetoFilter} disabled={loadingProjetos}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Todos" />
+                                    <SelectValue placeholder={loadingProjetos ? "Carregando..." : "Todos"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="todos">Todos</SelectItem>
+                                    <SelectItem value="todos">Todos os projetos</SelectItem>
                                     {projetos.map((projeto) => (
                                         <SelectItem key={projeto} value={projeto}>
                                             {projeto}
@@ -366,6 +386,9 @@ export default function TransladoRelatoriosPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                            {loadingProjetos && (
+                                <p className="text-xs text-gray-400 mt-1">Carregando projetos...</p>
+                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -427,6 +450,38 @@ export default function TransladoRelatoriosPage() {
                             </TableBody>
                         </Table>
                     </div>
+
+                    {/* Paginação */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-between items-center p-4 border-t mt-4">
+                            <p className="text-sm text-gray-500">
+                                Mostrando {translados.length} de {totalItems} registros
+                            </p>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Anterior
+                                </Button>
+                                <span className="px-3 py-1 text-sm">
+                                    Página {currentPage} de {totalPages}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Próxima
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -486,7 +541,6 @@ export default function TransladoRelatoriosPage() {
                                 </div>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 2: Tipo */}
@@ -495,7 +549,6 @@ export default function TransladoRelatoriosPage() {
                                 <p className="text-sm">{transladoSelecionado.tipo || "---"}</p>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 3: Fornecedor */}
@@ -510,7 +563,6 @@ export default function TransladoRelatoriosPage() {
                                 </div>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 4: Projeto e Responsável */}
@@ -525,7 +577,6 @@ export default function TransladoRelatoriosPage() {
                                 </div>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 5: Datas */}
@@ -551,7 +602,6 @@ export default function TransladoRelatoriosPage() {
                                 </div>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 6: Valores */}
@@ -569,7 +619,6 @@ export default function TransladoRelatoriosPage() {
                                 </div>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 7: Pagamento */}
@@ -584,7 +633,6 @@ export default function TransladoRelatoriosPage() {
                                 </div>
                             </div>
 
-                            {/* Separador */}
                             <div className="border-t border-gray-200" />
 
                             {/* Seção 8: Descrições */}
@@ -604,7 +652,6 @@ export default function TransladoRelatoriosPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="border-t border-gray-200" />
                                 </>
                             )}
                         </div>
