@@ -63,6 +63,12 @@ const menuItems: MenuItem[] = [
         roles: ["admin", "visualizador"]
       },
       {
+        title: "Funcionários",
+        path: "/funcionarios",
+        icon: Users,
+        roles: ["admin"],
+      },
+      {
         title: "Importar Uber/99",
         path: "/importar",
         icon: Upload,
@@ -94,12 +100,6 @@ const menuItems: MenuItem[] = [
         roles: ["admin"]
       },
     ],
-  },
-  {
-    title: "Funcionários",
-    path: "/funcionarios",
-    icon: Users,
-    roles: ["admin"],
   },
   {
     title: "Administração",
