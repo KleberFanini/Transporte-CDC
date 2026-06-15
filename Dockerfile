@@ -14,6 +14,8 @@ COPY prisma ./prisma/
 RUN npm ci
 
 RUN npx prisma generate
+RUN npx prisma db push
+RUN npx prisma db seed
 
 # Estágio de build
 FROM base AS builder
