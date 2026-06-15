@@ -66,5 +66,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Script de entrada que executa db push antes de iniciar
-CMD npx prisma db push --skip-generate && node server.js
+# Apenas iniciar o servidor (db push deve ser feito manualmente)
+CMD ["node", "server.js"]
