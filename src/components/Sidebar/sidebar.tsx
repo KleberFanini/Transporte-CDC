@@ -66,7 +66,7 @@ const menuItems: MenuItem[] = [
         title: "Funcionários",
         path: "/funcionarios",
         icon: Users,
-        roles: ["admin"],
+        roles: ["admin", "visualizador"],
       },
       {
         title: "Importar Uber/99",
