@@ -9,7 +9,6 @@ const adminOnlyRoutes = [
     '/importar',
     '/translado/importar',
     '/admin',
-    '/funcionarios',
     '/api/importar-corridas',
     '/api/importar-translados',
 ];
