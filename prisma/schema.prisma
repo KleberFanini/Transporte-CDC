@@ -39,6 +39,9 @@ model Usuario {
   
   criadoEm DateTime @default(now())
   atualizadoEm DateTime @updatedAt
+
+  resetToken         String?   @db.VarChar(255)
+  resetTokenExpiry   DateTime?
 }
 
 model Corrida {

@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rotas que não precisam de autenticação
-const publicRoutes = ['/auth', '/api/auth/login', '/api/auth/cadastro'];
+const publicRoutes = [
+    '/auth',
+    '/api/auth/login',
+    '/api/auth/cadastro',
+    '/api/auth/recuperar-senha',
+    '/api/auth/validar-token',
+    '/api/auth/redefinir-senha',
+];
 
 // Rotas que apenas admin pode acessar
 const adminOnlyRoutes = [

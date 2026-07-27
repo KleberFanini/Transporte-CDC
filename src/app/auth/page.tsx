@@ -146,7 +146,7 @@ export default function AuthPage() {
 
                             {/* Link para recuperar senha (opcional) */}
                             <div className="text-center text-sm text-gray-500">
-                                <a href="#" className="text-gray-600 hover:text-[#5D2A1A] hover:underline">
+                                <a href="/auth/recuperar-senha" className="text-gray-600 hover:text-[#5D2A1A] hover:underline">
                                     Esqueceu sua senha?
                                 </a>
                             </div>
