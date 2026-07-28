@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 
 interface TransladoRow {
+    ID?: string;
     TIPO?: string;
     LANÇAMENTO?: string;
     "RESPONSÁVEL PELA CRIAÇÃO"?: string;
@@ -21,6 +22,10 @@ interface TransladoRow {
     "VALOR BRUTO"?: number | string;
     "VALOR LÍQUIDO"?: number | string;
     DOCUMENTO?: number | string;
+    "Categoria/Conta"?: string;
+    "Projeto/Centro de Custos"?: string;
+    Subprojeto?: string;
+    Atividade?: string;
     "OBSERVAÇÕES RATEIOS"?: string;
     "OBSERVAÇÕES GERAIS"?: string;
 }
@@ -49,7 +54,6 @@ function parseNumber(value: any): number | null {
 
 function parseDocumento(value: any): string | null {
     if (!value) return null;
-    // Converte para string e remove espaços extras
     return String(value).trim();
 }
 
@@ -67,7 +71,28 @@ function parseProjetoEValor(origemPagamento: string): { projeto: string | null, 
     return { projeto: origemPagamento, valor: null };
 }
 
+// Função para verificar se o usuário é admin
+function isAdmin(req: NextRequest): boolean {
+    const token = req.cookies.get('token')?.value;
+    if (!token) return false;
+
+    try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        return tokenData.perfil === 'admin';
+    } catch {
+        return false;
+    }
+}
+
 export async function POST(req: NextRequest) {
+    // Verificar permissão
+    if (!isAdmin(req)) {
+        return NextResponse.json(
+            { error: "Acesso negado. Apenas administradores podem importar dados." },
+            { status: 403 }
+        );
+    }
+
     const resultados: { linha: number; erro: string }[] = [];
     let importados = 0;
     let totalProcessados = 0;
@@ -93,7 +118,7 @@ export async function POST(req: NextRequest) {
             const row = data[i];
             const linhaNumero = i + 2;
 
-            // Pular linha vazia
+            // Pular linhas vazias
             if (!row.LANÇAMENTO && !row.FORNECEDOR) continue;
 
             totalProcessados++;
@@ -132,6 +157,10 @@ export async function POST(req: NextRequest) {
                     numeroDocumento: parseDocumento(row.DOCUMENTO),
                     observacoesRateios: row["OBSERVAÇÕES RATEIOS"] || null,
                     observacoesGerais: row["OBSERVAÇÕES GERAIS"] || null,
+                    categoriaConta: row["Categoria/Conta"] || null,
+                    projetoCentroCustos: row["Projeto/Centro de Custos"] || null,
+                    subprojeto: row.Subprojeto || null,
+                    atividade: row.Atividade || null,
                 };
 
                 // Verificar se já existe
@@ -140,13 +169,11 @@ export async function POST(req: NextRequest) {
                 });
 
                 if (existing) {
-                    // Atualizar
                     await prisma.translado.update({
                         where: { id: existing.id },
                         data: dadosTranslado,
                     });
                 } else {
-                    // Criar novo
                     await prisma.translado.create({
                         data: dadosTranslado,
                     });

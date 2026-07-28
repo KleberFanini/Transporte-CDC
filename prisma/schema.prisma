@@ -121,8 +121,13 @@ model Translado {
   numeroDocumento       String?   
   
   // Categorização
-  observacoesRateios    String?   // Mudado para corresponder ao Excel
-  observacoesGerais     String?   // Mudado para corresponder ao Excel
+  observacoesRateios    String?   
+  observacoesGerais     String?   
+  
+  categoriaConta        String?   
+  projetoCentroCustos   String?   
+  subprojeto            String?   
+  atividade             String?   
   
   criadoEm              DateTime  @default(now())
   atualizadoEm          DateTime  @updatedAt

@@ -68,49 +68,23 @@ export default function ImportarTransladosPage() {
 
     const downloadModelo = () => {
         const headers = [
-            'TIPO',
-            'LANÇAMENTO',
-            'RESPONSÁVEL PELA CRIAÇÃO',
-            'FORNECEDOR',
-            'DCTO FORNECEDOR',
-            'HISTÓRICO',
-            'COD CONTRATO',
-            'CADASTRO',
-            'COMPETÊNCIA',
-            'EMISSÃO',
-            'VENCIMENTO',
-            'APROVAÇÃO',
-            'PAGAMENTO',
-            'ORIGEM PAGAMENTO',
-            'TIPO PAGAMENTO',
-            'VALOR BRUTO',
-            'VALOR LÍQUIDO',
-            'DOCUMENTO',
-            'OBSERVAÇÕES RATEIOS',
-            'OBSERVAÇÕES GERAIS'
+            'ID', 'TIPO', 'LANÇAMENTO', 'RESPONSÁVEL PELA CRIAÇÃO',
+            'FORNECEDOR', 'DCTO FORNECEDOR', 'HISTÓRICO', 'COD CONTRATO',
+            'CADASTRO', 'COMPETÊNCIA', 'EMISSÃO', 'VENCIMENTO',
+            'APROVAÇÃO', 'PAGAMENTO', 'ORIGEM PAGAMENTO', 'TIPO PAGAMENTO',
+            'VALOR BRUTO', 'VALOR LÍQUIDO', 'DOCUMENTO',
+            'Categoria/Conta', 'Projeto/Centro de Custos', 'Subprojeto',
+            'Atividade', 'OBSERVAÇÕES RATEIOS', 'OBSERVAÇÕES GERAIS'
         ];
 
         const exemplo = [
-            'PRINC',
-            'CP010026',
-            'Giselle Patricia Barata de Lima',
-            'LUCAS GONZALIS MARTINS',
-            '24.585.223/0001-26',
-            'SERVIÇO TRANSLADO - ATITUDE CARUARU',
-            '',
-            '2025-03-31',
-            '03/2025',
-            '2025-03-28',
-            '2025-04-02',
-            'Não enviada',
-            '2025-04-02',
-            'Atitude Caruaru II: 719,50',
-            'TED (Outra Titularidade)',
-            '719,50',
-            '719,50',
-            '194',
-            '',
-            ''
+            '00010155', 'PRINC', 'CP010026', 'Giselle Patricia Barata de Lima',
+            'LUCAS GONZALIS MARTINS', '24.585.223/0001-26',
+            'SERVIÇO TRANSLADO - ATITUDE CARUARU', '',
+            '2025-03-31', '03/2025', '2025-03-28', '2025-04-02',
+            'Não enviada', '2025-04-02', 'Atitude Caruaru II: 719,50',
+            'TED (Outra Titularidade)', '719,50', '719,50', '194',
+            '', '', '', '', '', ''
         ];
 
         const delimiter = ';';
@@ -128,6 +102,7 @@ export default function ImportarTransladosPage() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        toast.success('Modelo baixado com sucesso!');
     };
 
     return (
