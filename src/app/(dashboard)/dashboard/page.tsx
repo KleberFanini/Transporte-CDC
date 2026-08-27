@@ -293,7 +293,7 @@ export default function DashboardPage() {
 
             {/* KPIs principais - REMOVIDOS: Ticket Médio */}
             {resumo && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
@@ -309,7 +309,6 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
-
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
@@ -325,7 +324,27 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
-
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Custo Médio por Viagem</p>
+                                    <p className="text-2xl font-bold text-[#5D2A1A] mt-1">
+                                        R$ {resumo.totalViagens > 0
+                                            ? (resumo.valorTotal / resumo.totalViagens).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            : '0,00'
+                                        }
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {resumo.totalViagens} viagens realizadas
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-[#5D2A1A]/10 rounded-full">
+                                    <DollarSign className="h-6 w-6 text-[#5D2A1A]" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
