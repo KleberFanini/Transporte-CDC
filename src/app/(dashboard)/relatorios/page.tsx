@@ -15,6 +15,7 @@ import {
     Calendar,
     DollarSign,
     Filter,
+    Route,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -81,6 +82,20 @@ interface DespesaDetalhe {
     porcentagem: number;
 }
 
+interface TrajetoRecorrente {
+    endereco: string;
+    totalViagens: number;
+    valorTotal: number;
+    valorMedio: number;
+    funcionarios: number;
+}
+
+interface TrajetoCompleto {
+    partida: string;
+    destino: string;
+    total: number;
+}
+
 export default function RelatoriosPage() {
     const [loading, setLoading] = useState(true);
     const [programas, setProgramas] = useState<ProgramasData[]>([]);
@@ -88,6 +103,11 @@ export default function RelatoriosPage() {
     const [ranking, setRanking] = useState<RankingFuncionario[]>([]);
     const [evolucaoMensal, setEvolucaoMensal] = useState<EvolucaoMensal[]>([]);
     const [despesasDetalhe, setDespesasDetalhe] = useState<DespesaDetalhe[]>([]);
+
+    // Novos estados para trajetos
+    const [partidasFrequentes, setPartidasFrequentes] = useState<TrajetoRecorrente[]>([]);
+    const [destinosFrequentes, setDestinosFrequentes] = useState<TrajetoRecorrente[]>([]);
+    const [trajetosMaisComuns, setTrajetosMaisComuns] = useState<TrajetoCompleto[]>([]);
 
     // Filtros
     const [plataforma, setPlataforma] = useState("todos");
@@ -166,6 +186,13 @@ export default function RelatoriosPage() {
             const despesasRes = await fetch(buildUrl("/api/dashboard/detalhamento-despesas"));
             const despesasData = await despesasRes.json();
             setDespesasDetalhe(despesasData);
+
+            // Trajetos Recorrentes
+            const trajetosRes = await fetch(buildUrl("/api/dashboard/trajetos-recorrentes"));
+            const trajetosData = await trajetosRes.json();
+            setPartidasFrequentes(trajetosData.partidasFrequentes || []);
+            setDestinosFrequentes(trajetosData.destinosFrequentes || []);
+            setTrajetosMaisComuns(trajetosData.trajetosMaisComuns || []);
         } catch (error) {
             console.error("Erro ao carregar dados:", error);
             toast.error("Erro ao carregar dados dos relatórios");
@@ -270,12 +297,13 @@ export default function RelatoriosPage() {
 
             {/* Tabs de relatórios */}
             <Tabs defaultValue="programas" className="space-y-4">
-                <TabsList className="grid w-full max-w-3xl grid-cols-5">
+                <TabsList className="grid w-full max-w-4xl grid-cols-6">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
                     <TabsTrigger value="cidades">Cidades</TabsTrigger>
                     <TabsTrigger value="ranking">Ranking</TabsTrigger>
                     <TabsTrigger value="evolucao">Evolução</TabsTrigger>
                     <TabsTrigger value="detalhamento">Detalhamento</TabsTrigger>
+                    <TabsTrigger value="trajetos">Trajetos</TabsTrigger>
                 </TabsList>
 
                 {/* Aba - Programas */}
@@ -525,6 +553,119 @@ export default function RelatoriosPage() {
                             </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* Nova Aba - Trajetos Recorrentes */}
+                <TabsContent value="trajetos">
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Route className="h-5 w-5" />
+                                    Trajetos Mais Comuns
+                                </CardTitle>
+                                <p className="text-sm text-gray-600">
+                                    Top 10 trajetos mais realizados
+                                </p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {trajetosMaisComuns.map((trajeto, index) => (
+                                        <div key={index} className="flex justify-between items-center border-b pb-2">
+                                            <div>
+                                                <span className="font-medium text-sm text-gray-500 mr-2">#{index + 1}</span>
+                                                <span className="font-medium">{trajeto.partida}</span>
+                                                <span className="text-gray-400 mx-2">→</span>
+                                                <span className="font-medium">{trajeto.destino}</span>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-sm text-gray-500">{trajeto.total} viagens</span>
+                                                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-[#5D2A1A] rounded-full"
+                                                        style={{
+                                                            width: `${(trajeto.total / (trajetosMaisComuns[0]?.total || 1)) * 100}%`
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {trajetosMaisComuns.length === 0 && (
+                                        <p className="text-center text-gray-500 py-8">Nenhum trajeto encontrado</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <MapPin className="h-5 w-5" />
+                                        Endereços de Partida Mais Frequentes
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {partidasFrequentes.map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center border-b pb-2">
+                                                <div>
+                                                    <span className="font-medium text-sm text-gray-500 mr-2">#{index + 1}</span>
+                                                    <span className="font-medium">{item.endereco}</span>
+                                                    <span className="text-xs text-gray-500 ml-2">
+                                                        ({item.funcionarios} funcionários)
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-medium">{item.totalViagens} viagens</span>
+                                                    <span className="text-xs text-gray-500 block">
+                                                        R$ {item.valorTotal.toLocaleString('pt-BR')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {partidasFrequentes.length === 0 && (
+                                            <p className="text-center text-gray-500 py-4">Nenhum dado encontrado</p>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <MapPin className="h-5 w-5" />
+                                        Endereços de Destino Mais Frequentes
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {destinosFrequentes.map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center border-b pb-2">
+                                                <div>
+                                                    <span className="font-medium text-sm text-gray-500 mr-2">#{index + 1}</span>
+                                                    <span className="font-medium">{item.endereco}</span>
+                                                    <span className="text-xs text-gray-500 ml-2">
+                                                        ({item.funcionarios} funcionários)
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-medium">{item.totalViagens} viagens</span>
+                                                    <span className="text-xs text-gray-500 block">
+                                                        R$ {item.valorTotal.toLocaleString('pt-BR')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {destinosFrequentes.length === 0 && (
+                                            <p className="text-center text-gray-500 py-4">Nenhum dado encontrado</p>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
                 </TabsContent>
             </Tabs>
 
