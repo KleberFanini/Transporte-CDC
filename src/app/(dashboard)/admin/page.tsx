@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { UserPlus, Edit, Trash2, CheckCircle, XCircle, Search, RefreshCw, Shield, Eye, EyeOff, MoreHorizontal, Loader2 } from "lucide-react";
+import { UserPlus, Edit, Trash2, CheckCircle, XCircle, Search, RefreshCw, Shield, Eye, EyeOff, MoreHorizontal, Loader2, Mail, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -54,6 +54,7 @@ export default function AdminPage() {
     const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [resetSenha, setResetSenha] = useState(false);
+    const [enviandoEmail, setEnviandoEmail] = useState(false);
 
     const form = useForm<UsuarioFormValues>({
         resolver: zodResolver(usuarioSchema),
@@ -108,8 +109,9 @@ export default function AdminPage() {
             editForm.reset();
             setUsuarioEditando(null);
             setShowPassword(false);
+            setResetSenha(false);
         }
-    }, [modalAberto, modalTipo, usuarioEditando, editForm, form, setShowPassword]);
+    }, [modalAberto, modalTipo, usuarioEditando, editForm, form]);
 
     const handleAbrirCadastro = () => {
         setModalTipo("cadastro");
@@ -127,7 +129,6 @@ export default function AdminPage() {
         try {
             const novoStatus = usuario.status === "ATIVO" ? "DESATIVADO" : "ATIVO";
 
-            // Chamar a API
             const response = await fetch(`/api/admin/usuarios/${usuario.id}/status`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -141,7 +142,6 @@ export default function AdminPage() {
 
             const usuarioAtualizado = await response.json();
 
-            // Atualizar o estado local
             setUsuarios(prev =>
                 prev.map(u => u.id === usuario.id ? usuarioAtualizado : u)
             );
@@ -150,6 +150,31 @@ export default function AdminPage() {
         } catch (error: any) {
             console.error("Erro:", error);
             toast.error(error.message || "Erro ao alterar status");
+        }
+    };
+
+    // Função para reenviar email de boas-vindas
+    const handleReenviarEmail = async (usuario: Usuario) => {
+        setEnviandoEmail(true);
+        try {
+            const response = await fetch("/api/auth/reenviar-boas-vindas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: usuario.email }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Erro ao reenviar email");
+            }
+
+            toast.success(`Email de boas-vindas reenviado para ${usuario.email}`);
+        } catch (error: any) {
+            console.error("Erro:", error);
+            toast.error(error.message || "Erro ao reenviar email");
+        } finally {
+            setEnviandoEmail(false);
         }
     };
 
@@ -168,9 +193,11 @@ export default function AdminPage() {
                 throw new Error(errorData.message || "Erro ao cadastrar usuário");
             }
 
-            toast.success("Usuário cadastrado com sucesso");
+            const result = await response.json();
+
+            toast.success(result.message || "Usuário cadastrado com sucesso! Email enviado para definir a senha.");
             setModalAberto(false);
-            carregarUsuarios(); // Recarrega a lista
+            carregarUsuarios();
         } catch (error: any) {
             console.error("Erro:", error);
             toast.error(error.message || "Erro ao cadastrar usuário");
@@ -182,7 +209,6 @@ export default function AdminPage() {
         setLoading(true);
 
         try {
-            // Chamar a API para atualizar no banco
             const response = await fetch(`/api/admin/usuarios/${usuarioEditando.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -201,7 +227,6 @@ export default function AdminPage() {
 
             const usuarioAtualizado = await response.json();
 
-            // Atualizar o estado local com o usuário atualizado
             setUsuarios(prev =>
                 prev.map(u =>
                     u.id === usuarioEditando.id ? usuarioAtualizado : u
@@ -274,9 +299,8 @@ export default function AdminPage() {
             </div>
 
             {/* Barra de Pesquisa */}
-            <CardContent>
-                <div className="flex gap-4 relative bg-white">
-
+            <CardContent className="p-4">
+                <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                         placeholder="Buscar por nome ou email..."
@@ -284,7 +308,6 @@ export default function AdminPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
                     />
-
                     {searchTerm && (
                         <button
                             onClick={() => setSearchTerm("")}
@@ -300,34 +323,53 @@ export default function AdminPage() {
             <Card className="rounded-xl bg-white overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b bg-gray-100">
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Nome</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">E-mail</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Papel</th>
-                                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
-                                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-gray-100">
+                                    <TableHead className="text-left py-3 px-4 text-sm font-medium text-gray-600">Nome</TableHead>
+                                    <TableHead className="text-left py-3 px-4 text-sm font-medium text-gray-600">E-mail</TableHead>
+                                    <TableHead className="text-left py-3 px-4 text-sm font-medium text-gray-600">Papel</TableHead>
+                                    <TableHead className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</TableHead>
+                                    <TableHead className="text-right py-3 px-4 text-sm font-medium text-gray-600">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {usuariosFiltrados.map((usuario, index) => (
-                                    <tr key={usuario.id} className={`border-b ${index === usuariosFiltrados.length - 1 ? "border-b-0" : ""
-                                        }`}>
-                                        <td className="py-3 px-4 font-medium">{usuario.nome}</td>
-                                        <td className="py-3 px-4 text-sm">{usuario.email}</td>
-                                        <td className="py-3 px-4">{getPerfilBadge(usuario.perfil)}</td>
-                                        <td className="py-3 px-4">{getStatusBadge(usuario.status)}</td>
-                                        <td className="text-right py-3 px-4">
+                                    <TableRow key={usuario.id} className="border-b">
+                                        <TableCell className="py-3 px-4 font-medium">{usuario.nome}</TableCell>
+                                        <TableCell className="py-3 px-4 text-sm">{usuario.email}</TableCell>
+                                        <TableCell className="py-3 px-4">{getPerfilBadge(usuario.perfil)}</TableCell>
+                                        <TableCell className="py-3 px-4">{getStatusBadge(usuario.status)}</TableCell>
+                                        <TableCell className="text-right py-3 px-4">
                                             <div className="flex items-center gap-2 justify-end">
+                                                {/* Botão Reenviar Email */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleReenviarEmail(usuario)}
+                                                    disabled={enviandoEmail}
+                                                    className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                                                    title="Reenviar email de boas-vindas"
+                                                >
+                                                    {enviandoEmail ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Mail className="h-4 w-4" />
+                                                    )}
+                                                </Button>
+
+                                                {/* Botão Editar */}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleAbrirEdicao(usuario)}
                                                     className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                                                    title="Editar usuário"
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
+
+                                                {/* Botão Ativar/Desativar */}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -336,6 +378,7 @@ export default function AdminPage() {
                                                         ? "text-gray-600 hover:text-red-600 hover:bg-red-50"
                                                         : "text-gray-600 hover:text-green-600 hover:bg-green-50"
                                                     }
+                                                    title={usuario.status === "ATIVO" ? "Desativar" : "Ativar"}
                                                 >
                                                     {usuario.status === "ATIVO" ? (
                                                         <XCircle className="h-4 w-4" />
@@ -344,18 +387,18 @@ export default function AdminPage() {
                                                     )}
                                                 </Button>
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
                                 {usuariosFiltrados.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="py-8 text-center text-gray-500">
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="py-8 text-center text-gray-500">
                                             Nenhum usuário encontrado
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 )}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
             </Card>
@@ -367,85 +410,85 @@ export default function AdminPage() {
                         <DialogTitle>Cadastrar Usuário</DialogTitle>
                         <DialogDescription>
                             Preencha os campos abaixo para cadastrar um novo usuário.
+                            Um email de boas-vindas será enviado para definir a senha.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={form.handleSubmit(handleCadastro)} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="nome">Nome Completo</Label>
-                                <Input
-                                    id="nome"
-                                    {...form.register("nome")}
-                                    className="bg-white"
-                                    placeholder="Digite o nome completo"
-                                />
-                                {form.formState.errors.nome && (
-                                    <p className="text-red-500 text-sm">
-                                        {form.formState.errors.nome.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    {...form.register("email")}
-                                    className="bg-white"
-                                    placeholder="Digite o email"
-                                />
-                                {form.formState.errors.email && (
-                                    <p className="text-red-500 text-sm">
-                                        {form.formState.errors.email.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="senha">Senha</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="senha"
-                                        type={showPassword ? "text" : "password"}
-                                        className="bg-white"
-                                        {...form.register("senha")}
-                                        placeholder="********"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                                    >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
-                                </div>
-                                {form.formState.errors.senha && (
-                                    <p className="text-sm text-red-500">{form.formState.errors.senha.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="perfil">Perfil</Label>
-                                <Select
-                                    onValueChange={(value) => form.setValue("perfil", value as "admin" | "visualizador")}
-                                    defaultValue={form.getValues("perfil")}
-                                    value={form.watch("perfil")}
-                                >
-                                    <SelectTrigger className="w-full bg-white">
-                                        <SelectValue placeholder="Selecione um papel" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        <SelectItem value="admin">Administrador</SelectItem>
-                                        <SelectItem value="visualizador">Visualizador</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {form.formState.errors.perfil && (
-                                    <p className="text-sm text-red-500">{form.formState.errors.perfil.message}</p>
-                                )}
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="cadastro-nome">Nome Completo</Label>
+                            <Input
+                                id="cadastro-nome"
+                                {...form.register("nome")}
+                                className="bg-white"
+                                placeholder="Digite o nome completo"
+                            />
+                            {form.formState.errors.nome && (
+                                <p className="text-red-500 text-sm">
+                                    {form.formState.errors.nome.message}
+                                </p>
+                            )}
                         </div>
-                        <DialogFooter className="mt-4 flex items-center ">
+
+                        <div className="space-y-2">
+                            <Label htmlFor="cadastro-email">Email</Label>
+                            <Input
+                                id="cadastro-email"
+                                {...form.register("email")}
+                                className="bg-white"
+                                placeholder="Digite o email"
+                            />
+                            {form.formState.errors.email && (
+                                <p className="text-red-500 text-sm">
+                                    {form.formState.errors.email.message}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="cadastro-senha">Senha Temporária</Label>
+                            <div className="relative">
+                                <Input
+                                    id="cadastro-senha"
+                                    type={showPassword ? "text" : "password"}
+                                    className="bg-white"
+                                    {...form.register("senha")}
+                                    placeholder="********"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            {form.formState.errors.senha && (
+                                <p className="text-sm text-red-500">{form.formState.errors.senha.message}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="cadastro-perfil">Perfil</Label>
+                            <Select
+                                onValueChange={(value) => form.setValue("perfil", value as "admin" | "visualizador")}
+                                defaultValue={form.getValues("perfil")}
+                                value={form.watch("perfil")}
+                            >
+                                <SelectTrigger className="w-full bg-white">
+                                    <SelectValue placeholder="Selecione um papel" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="visualizador">Visualizador</SelectItem>
+                                    <SelectItem value="admin">Administrador</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {form.formState.errors.perfil && (
+                                <p className="text-sm text-red-500">{form.formState.errors.perfil.message}</p>
+                            )}
+                        </div>
+
+                        <DialogFooter>
                             <Button
                                 type="button"
                                 variant="outline"
@@ -454,13 +497,22 @@ export default function AdminPage() {
                             >
                                 Cancelar
                             </Button>
-
                             <Button
                                 type="submit"
                                 className="bg-[#5D2A1A] hover:bg-[#4A2214] text-white"
                                 disabled={form.formState.isSubmitting}
                             >
-                                {form.formState.isSubmitting ? "Cadastrando..." : "Cadastrar"}
+                                {form.formState.isSubmitting ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Cadastrando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                        Cadastrar
+                                    </>
+                                )}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -522,7 +574,6 @@ export default function AdminPage() {
                             </Select>
                         </div>
 
-                        {/* Checkbox para resetar senha */}
                         <div className="flex items-center space-x-2 py-2">
                             <input
                                 type="checkbox"
@@ -541,7 +592,6 @@ export default function AdminPage() {
                             </Label>
                         </div>
 
-                        {/* Campo de nova senha (só aparece se marcar o checkbox) */}
                         {resetSenha && (
                             <div className="space-y-2">
                                 <Label htmlFor="edit-senha">Nova Senha</Label>
@@ -578,8 +628,16 @@ export default function AdminPage() {
                             <Button
                                 type="submit"
                                 className="bg-[#5D2A1A] hover:bg-[#4A2214] text-white"
+                                disabled={loading}
                             >
-                                Salvar Alterações
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    "Salvar Alterações"
+                                )}
                             </Button>
                         </DialogFooter>
                     </form>

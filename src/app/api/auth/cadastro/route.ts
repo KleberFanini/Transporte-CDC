@@ -1,93 +1,87 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { criarToken } from "@/lib/jwt";
+import bcrypt from "bcryptjs";
+import { sendWelcomeEmail } from "@/lib/email";
+import crypto from "crypto";
 
-const bodySchema = z.object({
-    nome: z.string().min(6, "Nome deve ter no mínimo 6 caracteres"),
-    email: z.string().email("Email inválido"),
-    senha: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
-});
+// Gerar token aleatório seguro
+function generateResetToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+}
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        // Verifica se consegue ler o JSON
-        let json;
-        try {
-            json = await req.json();
-        } catch (e) {
+        const body = await req.json();
+        const { nome, email, senha } = body;
+
+        // Validações
+        if (!nome || !email || !senha) {
             return NextResponse.json(
-                { error: "JSON inválido no corpo da requisição" },
+                { error: "Nome, email e senha são obrigatórios" },
                 { status: 400 }
             );
         }
 
-        // Valida com Zod
-        const result = bodySchema.safeParse(json);
-
-        if (!result.success) {
-            return NextResponse.json(
-                {
-                    error: "Dados inválidos",
-                    detalhes: result.error.issues.map(i => ({
-                        campo: i.path.join('.'),
-                        mensagem: i.message
-                    }))
-                },
-                { status: 400 }
-            );
-        }
-
-        const body = result.data;
-
-        // Verifica se usuário existe
-        const existe = await prisma.usuario.findUnique({
-            where: { email: body.email }
+        // Verificar se email já existe
+        const usuarioExistente = await prisma.usuario.findUnique({
+            where: { email }
         });
 
-        if (existe) {
+        if (usuarioExistente) {
             return NextResponse.json(
-                { error: "Email já cadastrado!" },
-                { status: 409 }
+                { error: "Email já cadastrado" },
+                { status: 400 }
             );
         }
 
-        // Cria hash da senha
-        const hash = await bcrypt.hash(body.senha, 10);
+        // Hash da senha
+        const senhaHash = await bcrypt.hash(senha, 10);
 
-        // Cria usuário
+        // Gerar token para definição de senha
+        const resetToken = generateResetToken();
+
+        // Verificar se é o primeiro usuário (se for, criar como admin)
+        const totalUsuarios = await prisma.usuario.count();
+        const perfil = totalUsuarios === 0 ? 'admin' : 'visualizador';
+
+        // Criar usuário
         const usuario = await prisma.usuario.create({
             data: {
-                nome: body.nome,
-                email: body.email,
-                senha: hash,
-                perfil: "visualizador",
+                nome,
+                email,
+                senha: senhaHash,
+                perfil,
+                status: 'ATIVO',
+                resetToken: resetToken,
+                resetTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
             },
             select: {
                 id: true,
                 nome: true,
                 email: true,
                 perfil: true,
-            }
+                status: true,
+                criadoEm: true,
+            },
         });
 
-        // Gera token JWT
-        const token = await criarToken({
-            sub: usuario.id,
-            email: usuario.email,
-            perfil: usuario.perfil,
+        // Enviar email de boas-vindas com link para definir senha
+        try {
+            await sendWelcomeEmail(email, nome, resetToken);
+            console.log(`✅ Email de boas-vindas enviado para ${email}`);
+        } catch (emailError) {
+            console.error(`❌ Erro ao enviar email de boas-vindas para ${email}:`, emailError);
+            // Não falha o cadastro se o email não enviar
+        }
+
+        return NextResponse.json({
+            message: "Usuário criado com sucesso! Um email foi enviado para definir a senha.",
+            usuario,
         });
-
-        return NextResponse.json(
-            { usuario, token },
-            { status: 201 }
-        );
-
     } catch (error) {
-        console.error("Erro no cadastro:", error);
+        console.error("Erro ao criar usuário:", error);
         return NextResponse.json(
-            { error: "Erro interno do servidor" },
+            { error: "Erro ao criar usuário" },
             { status: 500 }
         );
     }
