@@ -8,9 +8,11 @@ export class ImportService {
         total: number;
         importados: number;
         erros: { linha: number; erro: string }[];
+        ajustados99?: number;  // Adicionado
     }> {
         const erros: { linha: number; erro: string }[] = [];
         let importados = 0;
+        let ajustados99 = 0;  // Contador para viagens da 99
 
         console.log(`📊 Iniciando importação de ${dados.length} registros...`);
 
@@ -21,6 +23,11 @@ export class ImportService {
                 if (!item.idCorridaPlataforma || !item.valorTotal) {
                     erros.push({ linha: i + 1, erro: 'Dados obrigatórios faltando' });
                     continue;
+                }
+
+                // Verificar se é viagem da 99 (já veio com o valor ajustado do parser)
+                if (item.plataforma === 'NOVE_NOVE') {
+                    ajustados99++;
                 }
 
                 let distanciaKm: number | null = null;
@@ -118,8 +125,16 @@ export class ImportService {
         }
 
         console.log(`✅ Importação concluída: ${importados} registros importados, ${erros.length} erros`);
+        if (ajustados99 > 0) {
+            console.log(`🟢 R$1 adicionado a ${ajustados99} viagens da 99`);
+        }
 
-        return { total: dados.length, importados, erros };
+        return {
+            total: dados.length,
+            importados,
+            erros,
+            ajustados99: ajustados99 > 0 ? ajustados99 : undefined
+        };
     }
 
     private extractDateOnly(dateValue: Date | string | null): Date | null {

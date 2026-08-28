@@ -137,7 +137,13 @@ export class FileParser {
             }
         }
 
-        const valorTotal = this.parseFloatExato(row['Valor Total'] || row['valor_total'] || row['Amount']);
+        // 🔧 ADICIONAR R$1 PARA VIAGENS DA 99
+        let valorTotal = this.parseFloatExato(row['Valor Total'] || row['valor_total'] || row['Amount']);
+
+        if (plataforma === 'NOVE_NOVE') {
+            valorTotal += 1; // Adiciona R$1
+            console.log(`🟢 Adicionado R$1 à viagem 99: ${idCorridaStr} (valor original: ${this.parseFloatExato(row['Valor Total'] || 0)})`);
+        }
 
         return {
             idCorridaPlataforma: idCorridaStr,
@@ -154,7 +160,7 @@ export class FileParser {
             nomeCompleto: row['Nome Completo'] || row['nome_completo'] || '',
             email: row['Email'] || row['email'] || row['E-mail'] || '',
             detalhamentoDespesa: row['Detalhamento da despesa'] || row['detalhamento_despesa'] || row['Expense Memo'] || '',
-            valorTotal: valorTotal,
+            valorTotal: valorTotal, // Já com o ajuste para 99
             distanciaKm: this.parseFloatExato(distanciaKm),
             duracaoMin: duracaoMin,
             enderecoPartida: row['Endereço Partida'] || row['endereco_partida'] || row['Pickup Address'] || '',

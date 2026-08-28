@@ -329,7 +329,7 @@ export default function DashboardPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Custo Médio por Viagem</p>
-                                    <p className="text-2xl font-bold text-[#5D2A1A] mt-1">
+                                    <p className="text-2xl font-bold text-gray-900 mt-1">
                                         R$ {resumo.totalViagens > 0
                                             ? (resumo.valorTotal / resumo.totalViagens).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                             : '0,00'
@@ -340,7 +340,7 @@ export default function DashboardPage() {
                                     </p>
                                 </div>
                                 <div className="p-3 bg-[#5D2A1A]/10 rounded-full">
-                                    <DollarSign className="h-6 w-6 text-[#5D2A1A]" />
+                                    <DollarSign className="h-6 w-6 text-gray-900" />
                                 </div>
                             </div>
                         </CardContent>

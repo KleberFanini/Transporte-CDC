@@ -14,10 +14,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Parse do arquivo
         const dados = await FileParser.parseFile(file);
-
-        // Importação
         const importService = new ImportService();
         const resultado = await importService.importarCorridas(dados);
 
@@ -31,7 +28,6 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// GET para testes (opcional)
 export async function GET() {
     return NextResponse.json({
         message: 'API de importação de corridas',
