@@ -16,6 +16,9 @@ import {
     DollarSign,
     Filter,
     Route,
+    Clock,
+    Sunrise,
+    Sunset
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -96,6 +99,30 @@ interface TrajetoCompleto {
     total: number;
 }
 
+interface HorarioExtraData {
+    totalViagens: number;
+    viagensAntes8: number;
+    viagensDepois17: number;
+    viagensForaHorario: number;
+    percentualForaHorario: string;
+    valorAntes8: number;
+    valorDepois17: number;
+    valorForaHorario: number;
+    rankingFuncionarios: {
+        nome: string;
+        antes8: number;
+        depois17: number;
+        total: number;
+        valorTotal: number;
+    }[];
+    distribuicaoPorHora: {
+        hora: string;
+        quantidade: number;
+        valor: number;
+    }[];
+    ultimasViagens: any[];
+}
+
 export default function RelatoriosPage() {
     const [loading, setLoading] = useState(true);
     const [programas, setProgramas] = useState<ProgramasData[]>([]);
@@ -117,6 +144,7 @@ export default function RelatoriosPage() {
     const [tempDataInicio, setTempDataInicio] = useState("");
     const [tempDataFim, setTempDataFim] = useState("");
     const [status, setStatus] = useState("todos");
+    const [horariosData, setHorariosData] = useState<HorarioExtraData | null>(null);
 
     // Construir URL com parâmetros
     const buildUrl = (baseUrl: string) => {
@@ -193,6 +221,11 @@ export default function RelatoriosPage() {
             setPartidasFrequentes(trajetosData.partidasFrequentes || []);
             setDestinosFrequentes(trajetosData.destinosFrequentes || []);
             setTrajetosMaisComuns(trajetosData.trajetosMaisComuns || []);
+
+            const horariosRes = await fetch(buildUrl("/api/dashboard/horarios-extras"));
+            const horariosData = await horariosRes.json();
+            setHorariosData(horariosData);
+
         } catch (error) {
             console.error("Erro ao carregar dados:", error);
             toast.error("Erro ao carregar dados dos relatórios");
@@ -297,13 +330,14 @@ export default function RelatoriosPage() {
 
             {/* Tabs de relatórios */}
             <Tabs defaultValue="programas" className="space-y-4">
-                <TabsList className="grid w-full max-w-4xl grid-cols-6">
+                <TabsList className="grid w-full max-w-5xl grid-cols-7">
                     <TabsTrigger value="programas">Programas</TabsTrigger>
                     <TabsTrigger value="cidades">Cidades</TabsTrigger>
                     <TabsTrigger value="ranking">Ranking</TabsTrigger>
                     <TabsTrigger value="evolucao">Evolução</TabsTrigger>
                     <TabsTrigger value="detalhamento">Detalhamento</TabsTrigger>
                     <TabsTrigger value="trajetos">Trajetos</TabsTrigger>
+                    <TabsTrigger value="horarios">Horários</TabsTrigger>
                 </TabsList>
 
                 {/* Aba - Programas */}
@@ -665,6 +699,233 @@ export default function RelatoriosPage() {
                                 </CardContent>
                             </Card>
                         </div>
+                    </div>
+                </TabsContent>
+
+                {/* Aba - Horários Extras */}
+                <TabsContent value="horarios">
+                    <div className="space-y-6">
+                        {horariosData ? (
+                            <>
+                                {/* Cards de resumo */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <Card>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-600">Antes das 8h</p>
+                                                    <p className="text-2xl font-bold text-orange-500">
+                                                        {horariosData.viagensAntes8}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        R$ {horariosData.valorAntes8.toLocaleString('pt-BR')}
+                                                    </p>
+                                                </div>
+                                                <div className="p-3 bg-orange-100 rounded-full">
+                                                    <Sunrise className="h-6 w-6 text-orange-500" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-600">Depois das 17h</p>
+                                                    <p className="text-2xl font-bold text-purple-500">
+                                                        {horariosData.viagensDepois17}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        R$ {horariosData.valorDepois17.toLocaleString('pt-BR')}
+                                                    </p>
+                                                </div>
+                                                <div className="p-3 bg-purple-100 rounded-full">
+                                                    <Sunset className="h-6 w-6 text-purple-500" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-600">Total Fora do Horário</p>
+                                                    <p className="text-2xl font-bold text-red-500">
+                                                        {horariosData.viagensForaHorario}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {horariosData.percentualForaHorario}% do total
+                                                    </p>
+                                                </div>
+                                                <div className="p-3 bg-red-100 rounded-full">
+                                                    <Clock className="h-6 w-6 text-red-500" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-600">Total de Viagens</p>
+                                                    <p className="text-2xl font-bold text-gray-900">
+                                                        {horariosData.totalViagens}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        Fora do horário: {horariosData.viagensForaHorario}
+                                                    </p>
+                                                </div>
+                                                <div className="p-3 bg-gray-100 rounded-full">
+                                                    <Car className="h-6 w-6 text-gray-600" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Gráfico de distribuição por hora */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <BarChart3 className="h-5 w-5" />
+                                            Distribuição por Hora do Dia
+                                        </CardTitle>
+                                        <p className="text-sm text-gray-600">
+                                            Áreas em vermelho indicam horários fora do comercial (antes 8h e depois 17h)
+                                        </p>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <BarChart data={horariosData.distribuicaoPorHora}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="hora" />
+                                                <YAxis yAxisId="left" />
+                                                <YAxis yAxisId="right" orientation="right" />
+                                                <Tooltip
+                                                    formatter={(value, name) => {
+                                                        if (name === 'valor') return `R$ ${Number(value).toLocaleString('pt-BR')}`;
+                                                        return value;
+                                                    }}
+                                                />
+                                                <Legend />
+                                                <Bar yAxisId="left" dataKey="quantidade" fill="#5D2A1A" name="Viagens" />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Ranking de funcionários */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Users className="h-5 w-5" />
+                                            Funcionários com Viagens Fora do Horário
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Funcionário</th>
+                                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">Antes 8h</th>
+                                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">Depois 17h</th>
+                                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">Total</th>
+                                                        <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Valor Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {horariosData.rankingFuncionarios.map((func, index) => (
+                                                        <tr key={func.nome} className="border-b hover:bg-gray-50">
+                                                            <td className="py-3 px-4 font-medium">{func.nome}</td>
+                                                            <td className="py-3 px-4 text-center">
+                                                                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                                                                    {func.antes8}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-center">
+                                                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                                                                    {func.depois17}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-center font-medium">{func.total}</td>
+                                                            <td className="py-3 px-4 text-right">
+                                                                R$ {func.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {horariosData.rankingFuncionarios.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} className="text-center py-8 text-gray-500">
+                                                                Nenhum funcionário com viagens fora do horário
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Últimas viagens fora do horário */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Clock className="h-5 w-5" />
+                                            Últimas Viagens Fora do Horário
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-2 px-3 font-medium text-gray-600">Data</th>
+                                                        <th className="text-left py-2 px-3 font-medium text-gray-600">Hora</th>
+                                                        <th className="text-left py-2 px-3 font-medium text-gray-600">Funcionário</th>
+                                                        <th className="text-left py-2 px-3 font-medium text-gray-600">Serviço</th>
+                                                        <th className="text-left py-2 px-3 font-medium text-gray-600">Destino</th>
+                                                        <th className="text-right py-2 px-3 font-medium text-gray-600">Valor</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {horariosData.ultimasViagens.map((viagem) => (
+                                                        <tr key={viagem.id} className="border-b hover:bg-gray-50">
+                                                            <td className="py-2 px-3">
+                                                                {new Date(viagem.dataSolicitacao).toLocaleDateString('pt-BR')}
+                                                            </td>
+                                                            <td className="py-2 px-3 font-mono">
+                                                                {viagem.horaSolicitacao}
+                                                            </td>
+                                                            <td className="py-2 px-3">{viagem.nomeCompleto}</td>
+                                                            <td className="py-2 px-3">{viagem.servico || '-'}</td>
+                                                            <td className="py-2 px-3 max-w-[150px] truncate">
+                                                                {viagem.enderecoDestino || '-'}
+                                                            </td>
+                                                            <td className="py-2 px-3 text-right font-medium">
+                                                                R$ {Number(viagem.valorTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {horariosData.ultimasViagens.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={6} className="text-center py-8 text-gray-500">
+                                                                Nenhuma viagem fora do horário encontrada
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </>
+                        ) : (
+                            <p className="text-center text-gray-500 py-8">Carregando dados de horários...</p>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
