@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function normalizarTexto(texto: string): string {
+    if (!texto) return '';
+    return texto
+        .toUpperCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
@@ -10,6 +19,7 @@ export async function GET(req: NextRequest) {
         const status = searchParams.get("status");
         const servico = searchParams.get("servico");
         const programa = searchParams.get("programa");
+        const funcionario = searchParams.get("funcionario");
         const limit = parseInt(searchParams.get("limit") || "10");
 
         // Construir filtro
@@ -42,8 +52,15 @@ export async function GET(req: NextRequest) {
             where.programa = programa;
         }
 
+        if (funcionario && funcionario !== "todos" && funcionario !== "") {
+            where.nomeCompleto = {
+                contains: funcionario,
+                mode: "insensitive",
+            };
+        }
+
         // Buscar todas as corridas com hora
-        const corridas = await prisma.corrida.findMany({
+        let corridas = await prisma.corrida.findMany({
             where: {
                 ...where,
                 horaSolicitacao: {
@@ -66,6 +83,11 @@ export async function GET(req: NextRequest) {
                 dataSolicitacao: 'desc',
             },
         });
+
+        if (funcionario && funcionario !== "todos" && funcionario !== "") {
+            const funcNorm = normalizarTexto(funcionario);
+            corridas = corridas.filter(c => normalizarTexto(c.nomeCompleto || "") === funcNorm);
+        }
 
         const toNumber = (value: any): number => {
             if (value === null || value === undefined) return 0;
