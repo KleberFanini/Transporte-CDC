@@ -8,6 +8,8 @@ export async function GET(req: NextRequest) {
         const dataFim = searchParams.get("dataFim");
         const plataforma = searchParams.get("plataforma");
         const status = searchParams.get("status");
+        const servico = searchParams.get("servico");
+        const programa = searchParams.get("programa");
         const limit = parseInt(searchParams.get("limit") || "10");
 
         // Construir filtro
@@ -31,6 +33,13 @@ export async function GET(req: NextRequest) {
 
         if (status && status !== "todos") {
             where.status = status;
+        }
+        if (servico && servico !== "todos" && servico !== "") {
+            where.servico = servico;
+        }
+
+        if (programa && programa !== "todos" && programa !== "") {
+            where.programa = programa;
         }
 
         // Buscar todas as corridas com hora

@@ -62,7 +62,8 @@ interface TransladoItem {
 
 export default function TransladoRelatoriosPage() {
     const [translados, setTranslados] = useState<TransladoItem[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -152,7 +153,9 @@ export default function TransladoRelatoriosPage() {
     };
 
     const carregarDados = async () => {
-        setLoading(true);
+        if (!initialLoading) {
+            setUpdating(true);
+        }
         try {
             const url = buildUrl("/api/translados/lista");
             console.log("Fetching URL:", url);
@@ -169,7 +172,8 @@ export default function TransladoRelatoriosPage() {
             console.error("Erro ao carregar dados:", error);
             toast.error("Erro ao carregar dados dos relatórios");
         } finally {
-            setLoading(false);
+            setInitialLoading(false);
+            setUpdating(false);
         }
     };
 
@@ -274,7 +278,7 @@ export default function TransladoRelatoriosPage() {
     // Verificar se há filtros ativos
     const hasActiveFilters = dataInicio || dataFim || statusFilter !== "todos" || projetoFilter !== "todos";
 
-    if (loading && currentPage === 1) {
+    if (initialLoading) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin text-[#5D2A1A]" />
@@ -288,7 +292,10 @@ export default function TransladoRelatoriosPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Relatórios de Translados</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                        Relatórios de Translados
+                        {updating && <Loader2 className="h-5 w-5 animate-spin text-[#5D2A1A]" />}
+                    </h1>
                     <p className="text-gray-600">
                         Lista detalhada de todos os translados ({totalItems} registros)
                     </p>

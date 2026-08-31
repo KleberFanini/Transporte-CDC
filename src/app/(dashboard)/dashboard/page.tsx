@@ -73,7 +73,8 @@ interface SelectOption {
 }
 
 export default function DashboardPage() {
-    const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [plataforma, setPlataforma] = useState("todos");
     const [programaGlobal, setProgramaGlobal] = useState("todos");
@@ -151,7 +152,9 @@ export default function DashboardPage() {
 
     // Carregar dados do dashboard
     const carregarDados = async () => {
-        setLoading(true);
+        if (!initialLoading) {
+            setUpdating(true);
+        }
         try {
             const params = new URLSearchParams();
             if (dataInicio) params.append('dataInicio', dataInicio);
@@ -180,7 +183,8 @@ export default function DashboardPage() {
             console.error("Erro ao carregar dashboard:", error);
             toast.error("Erro ao carregar dados do dashboard");
         } finally {
-            setLoading(false);
+            setInitialLoading(false);
+            setUpdating(false);
         }
     };
 
@@ -212,7 +216,7 @@ export default function DashboardPage() {
         carregarFuncionarios();
     }, [dataInicio, dataFim, plataforma, programaGlobal, filtroGrupo, status]);
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin text-[#5D2A1A]" />
@@ -227,7 +231,10 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Mobilidade CDC</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                            Mobilidade CDC
+                            {updating && <Loader2 className="h-5 w-5 animate-spin text-[#5D2A1A]" />}
+                        </h1>
                         <p className="text-gray-600">Gestão de deslocamentos de funcionários</p>
                     </div>
 

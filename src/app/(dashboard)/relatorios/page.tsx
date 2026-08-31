@@ -41,6 +41,13 @@ import {
 import { PlatformFilter } from "@/components/PlatformFilter";
 import { DateFilterModal } from "@/components/DateFilterModal";
 import { StatusFilter } from "@/components/StatusFilter";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // Cores para os gráficos
 const COLORS = [
@@ -124,7 +131,8 @@ interface HorarioExtraData {
 }
 
 export default function RelatoriosPage() {
-    const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     const [programas, setProgramas] = useState<ProgramasData[]>([]);
     const [cidades, setCidades] = useState<CidadesData[]>([]);
     const [ranking, setRanking] = useState<RankingFuncionario[]>([]);
@@ -144,7 +152,14 @@ export default function RelatoriosPage() {
     const [tempDataInicio, setTempDataInicio] = useState("");
     const [tempDataFim, setTempDataFim] = useState("");
     const [status, setStatus] = useState("todos");
+    const [programaFilter, setProgramaFilter] = useState("todos");
     const [horariosData, setHorariosData] = useState<HorarioExtraData | null>(null);
+
+    // Filtros específicos da aba Horários (Funcionário)
+    const [funcionarioFilter, setFuncionarioFilter] = useState("todos");
+    const [funcionariosList, setFuncionariosList] = useState<string[]>([]);
+    const [programasListHorarios, setProgramasListHorarios] = useState<string[]>([]);
+    const [loadingFiltros, setLoadingFiltros] = useState(false);
 
     // Construir URL com parâmetros
     const buildUrl = (baseUrl: string) => {
@@ -160,6 +175,12 @@ export default function RelatoriosPage() {
         }
         if (dataFim) {
             params.append('dataFim', dataFim);
+        }
+        if (funcionarioFilter && funcionarioFilter !== 'todos') {
+            params.append('funcionario', funcionarioFilter);
+        }
+        if (programaFilter && programaFilter !== 'todos') {
+            params.append('programa', programaFilter);
         }
         const queryString = params.toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
@@ -182,12 +203,49 @@ export default function RelatoriosPage() {
     const handleResetFiltro = () => {
         setDataInicio("");
         setDataFim("");
-        toast.info("Filtro de data removido. Mostrando todos os dados.");
+        setPlataforma("todos");
+        setStatus("todos");
+        setProgramaFilter("todos");
+        setFuncionarioFilter("todos");
+        toast.info("Filtros removidos. Mostrando todos os dados.");
+    };
+
+    // Carregar lista de funcionários e programas para os filtros
+    const carregarFiltrosHorarios = async () => {
+        setLoadingFiltros(true);
+        try {
+            const params = new URLSearchParams();
+            if (dataInicio) params.append('dataInicio', dataInicio);
+            if (dataFim) params.append('dataFim', dataFim);
+            if (plataforma && plataforma !== 'todos') params.append('plataforma', plataforma);
+            if (status && status !== 'todos') params.append('status', status);
+            if (programaFilter && programaFilter !== 'todos') params.append('programa', programaFilter);
+
+            // Carregar funcionários
+            const funcionariosRes = await fetch(`/api/dashboard/funcionarios-lista?${params.toString()}`);
+            if (funcionariosRes.ok) {
+                const data = await funcionariosRes.json();
+                setFuncionariosList(data);
+            }
+
+            // Carregar programas
+            const programasRes = await fetch(`/api/dashboard/programas-lista?${params.toString()}`);
+            if (programasRes.ok) {
+                const data = await programasRes.json();
+                setProgramasListHorarios(data);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar filtros:", error);
+        } finally {
+            setLoadingFiltros(false);
+        }
     };
 
     // Carregar dados
     const carregarDados = async () => {
-        setLoading(true);
+        if (!initialLoading) {
+            setUpdating(true);
+        }
         try {
             // Programas
             const programasRes = await fetch(buildUrl("/api/dashboard/programas"));
@@ -222,6 +280,7 @@ export default function RelatoriosPage() {
             setDestinosFrequentes(trajetosData.destinosFrequentes || []);
             setTrajetosMaisComuns(trajetosData.trajetosMaisComuns || []);
 
+            // Horários Extras
             const horariosRes = await fetch(buildUrl("/api/dashboard/horarios-extras"));
             const horariosData = await horariosRes.json();
             setHorariosData(horariosData);
@@ -230,13 +289,23 @@ export default function RelatoriosPage() {
             console.error("Erro ao carregar dados:", error);
             toast.error("Erro ao carregar dados dos relatórios");
         } finally {
-            setLoading(false);
+            setInitialLoading(false);
+            setUpdating(false);
         }
     };
 
+    // Carregar dados quando os filtros mudarem
     useEffect(() => {
         carregarDados();
-    }, [plataforma, dataInicio, dataFim, status]);
+        carregarFiltrosHorarios();
+    }, [plataforma, dataInicio, dataFim, status, programaFilter]);
+
+    // Recarregar dados quando os filtros específicos da aba Horários mudarem
+    useEffect(() => {
+        if (!initialLoading) {
+            carregarDados();
+        }
+    }, [funcionarioFilter]);
 
     const exportarCSV = (dados: any[], nomeArquivo: string, headers: string[]) => {
         const csvRows = [headers.join(",")];
@@ -259,7 +328,7 @@ export default function RelatoriosPage() {
         toast.success(`${nomeArquivo} exportado com sucesso!`);
     };
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin text-[#5D2A1A]" />
@@ -276,17 +345,42 @@ export default function RelatoriosPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Relatórios</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                        Relatórios
+                        {updating && <Loader2 className="h-5 w-5 animate-spin text-[#5D2A1A]" />}
+                    </h1>
                     <p className="text-gray-600">Análise de dados de mobilidade</p>
-                    {(dataInicio || dataFim) && (
+                    {(dataInicio || dataFim || funcionarioFilter !== 'todos' || programaFilter !== 'todos') && (
                         <p className="text-sm text-blue-600 mt-1">
-                            Período: {dataInicio || 'início'} até {dataFim || 'hoje'}
+                            {dataInicio && `Data início: ${dataInicio}`}
+                            {dataFim && ` até ${dataFim}`}
+                            {funcionarioFilter !== 'todos' && ` • Funcionário: ${funcionarioFilter}`}
+                            {programaFilter !== 'todos' && ` • Programa: ${programaFilter}`}
                         </p>
                     )}
                 </div>
+
                 <div className="flex flex-wrap gap-4 items-center">
                     <PlatformFilter value={plataforma} onChange={setPlataforma} />
                     <StatusFilter value={status} onChange={setStatus} />
+
+                    <Select
+                        value={programaFilter}
+                        onValueChange={(value) => setProgramaFilter(value)}
+                        disabled={loadingFiltros}
+                    >
+                        <SelectTrigger className="w-[180px] bg-[#F5F3EF] hover:bg-[#bdb8ae]">
+                            <SelectValue placeholder="Todos os programas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="todos">Todos os programas</SelectItem>
+                            {programasListHorarios.map((p) => (
+                                <SelectItem key={p} value={p}>
+                                    {p}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     <Button
                         variant="outline"
@@ -298,14 +392,14 @@ export default function RelatoriosPage() {
                         Filtrar por Data
                     </Button>
 
-                    {(dataInicio || dataFim) && (
+                    {(dataInicio || dataFim || funcionarioFilter !== 'todos' || programaFilter !== 'todos') && (
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleResetFiltro}
                             className="text-red-600 hover:text-red-700"
                         >
-                            Limpar Filtro
+                            Limpar Filtros
                         </Button>
                     )}
 
@@ -589,7 +683,7 @@ export default function RelatoriosPage() {
                     </Card>
                 </TabsContent>
 
-                {/* Nova Aba - Trajetos Recorrentes */}
+                {/* Aba - Trajetos Recorrentes */}
                 <TabsContent value="trajetos">
                     <div className="space-y-6">
                         <Card>
@@ -705,6 +799,43 @@ export default function RelatoriosPage() {
                 {/* Aba - Horários Extras */}
                 <TabsContent value="horarios">
                     <div className="space-y-6">
+                        {/* Filtros específicos da aba */}
+                        <Card>
+                            <CardContent className="pt-6">
+                                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium mb-2 block">Funcionário</label>
+                                        <Select
+                                            value={funcionarioFilter}
+                                            onValueChange={(value) => {
+                                                setFuncionarioFilter(value);
+                                            }}
+                                            disabled={loadingFiltros}
+                                        >
+                                            <SelectTrigger className="bg-white">
+                                                <SelectValue placeholder="Todos os funcionários" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="todos">Todos os funcionários</SelectItem>
+                                                {funcionariosList.map((f) => (
+                                                    <SelectItem key={f} value={f}>
+                                                        {f}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                {(funcionarioFilter !== 'todos' || programaFilter !== 'todos') && (
+                                    <div className="mt-4 text-sm text-blue-600">
+                                        Filtros ativos:
+                                        {funcionarioFilter !== 'todos' && ` Funcionário: ${funcionarioFilter}`}
+                                        {programaFilter !== 'todos' && ` Programa: ${programaFilter}`}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
                         {horariosData ? (
                             <>
                                 {/* Cards de resumo */}

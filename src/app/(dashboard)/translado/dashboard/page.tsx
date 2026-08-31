@@ -71,7 +71,8 @@ interface DashboardData {
 
 export default function TransladoDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
@@ -133,7 +134,9 @@ export default function TransladoDashboardPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      setLoading(true);
+      if (!initialLoading) {
+        setUpdating(true);
+      }
       try {
         const url = buildUrl("/api/translados/stats");
         console.log("Fetching URL:", url);
@@ -150,7 +153,8 @@ export default function TransladoDashboardPage() {
         console.error("Erro ao carregar dados:", err);
         toast.error("Erro ao carregar dashboard");
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
+        setUpdating(false);
       }
     };
 
@@ -164,7 +168,7 @@ export default function TransladoDashboardPage() {
     }).format(value);
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="h-8 w-8 animate-spin text-[#5D2A1A]" />
@@ -180,7 +184,10 @@ export default function TransladoDashboardPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Translados</h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            Dashboard Translados
+            {updating && <Loader2 className="h-5 w-5 animate-spin text-[#5D2A1A]" />}
+          </h1>
           <p className="text-gray-600 mt-1">
             Visão geral dos translados e despesas
           </p>

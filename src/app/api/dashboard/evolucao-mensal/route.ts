@@ -7,7 +7,8 @@ export async function GET(request: Request) {
         const dataInicioStr = searchParams.get('dataInicio');
         const dataFimStr = searchParams.get('dataFim');
         const plataforma = searchParams.get('plataforma');
-        const status = searchParams.get('status')
+        const status = searchParams.get('status');
+        const programa = searchParams.get('programa');
 
         const where: any = {
             dataSolicitacao: { not: null },
@@ -19,6 +20,10 @@ export async function GET(request: Request) {
 
         if (status && status !== 'todos') {
             where.status = status;
+        }
+
+        if (programa && programa !== 'todos') {
+            where.programa = programa;
         }
 
         if (dataInicioStr) {

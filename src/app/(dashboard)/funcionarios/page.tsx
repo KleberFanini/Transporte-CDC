@@ -69,7 +69,8 @@ interface SelectOption {
 }
 
 export default function UsuariosPage() {
-    const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [modalAberto, setModalAberto] = useState(false);
@@ -78,14 +79,14 @@ export default function UsuariosPage() {
     const [loadingDetalhe, setLoadingDetalhe] = useState(false);
 
     // Estados para filtros
-    const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
-    const [dataInicio, setDataInicio] = useState("");
-    const [dataFim, setDataFim] = useState("");
-    const [tempDataInicio, setTempDataInicio] = useState("");
-    const [tempDataFim, setTempDataFim] = useState("");
     const [programaSelecionado, setProgramaSelecionado] = useState("todos");
     const [plataformaSelecionada, setPlataformaSelecionada] = useState("todos");
     const [status, setStatus] = useState("todos");
+    const [dataInicio, setDataInicio] = useState("");
+    const [dataFim, setDataFim] = useState("");
+    const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
+    const [tempDataInicio, setTempDataInicio] = useState("");
+    const [tempDataFim, setTempDataFim] = useState("");
 
     // Opções para o select de programas
     const [programasOptions, setProgramasOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os programas" }]);
@@ -112,8 +113,10 @@ export default function UsuariosPage() {
 
     // Carregar funcionários
     const carregarFuncionarios = async () => {
+        if (!initialLoading) {
+            setUpdating(true);
+        }
         try {
-            setLoading(true);
             const params = new URLSearchParams();
 
             // Só adiciona se tiver valor válido
@@ -150,7 +153,8 @@ export default function UsuariosPage() {
             console.error("Erro:", error);
             toast.error(error instanceof Error ? error.message : "Erro ao carregar funcionários");
         } finally {
-            setLoading(false);
+            setInitialLoading(false);
+            setUpdating(false);
         }
     };
 
@@ -179,9 +183,8 @@ export default function UsuariosPage() {
             const data = await response.json();
             setCorridasDetalhe(data);
         } catch (error) {
-            console.error("Erro:", error);
-            toast.error("Erro ao carregar detalhes das corridas");
-            setCorridasDetalhe([]);
+            console.error("Erro ao carregar detalhes:", error);
+            toast.error("Erro ao carregar corridas do funcionário");
         } finally {
             setLoadingDetalhe(false);
         }
@@ -220,7 +223,7 @@ export default function UsuariosPage() {
     // Verificar se há filtros ativos
     const hasActiveFilters = dataInicio || dataFim || programaSelecionado !== "todos" || plataformaSelecionada !== "todos";
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin text-[#5D2A1A]" />
@@ -235,7 +238,10 @@ export default function UsuariosPage() {
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Funcionários</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                            Funcionários
+                            {updating && <Loader2 className="h-5 w-5 animate-spin text-[#5D2A1A]" />}
+                        </h1>
                         <p className="text-gray-600">Lista de funcionários e seus gastos</p>
                         {hasActiveFilters && (
                             <p className="text-sm text-blue-600 mt-1">
