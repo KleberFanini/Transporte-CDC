@@ -13,6 +13,18 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import {
+    BarChart,
+    Bar,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+} from "recharts";
+import {
     Table,
     TableBody,
     TableCell,
@@ -26,6 +38,8 @@ import {
     Loader2,
     Filter,
     Calendar,
+    TrendingUp,
+    Calendar as CalendarIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -87,6 +101,9 @@ export default function UsuariosPage() {
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [tempDataInicio, setTempDataInicio] = useState("");
     const [tempDataFim, setTempDataFim] = useState("");
+    const [evolucaoMensal, setEvolucaoMensal] = useState<any[]>([]);
+    const [totalViagensFunc, setTotalViagensFunc] = useState(0);
+    const [totalValorFunc, setTotalValorFunc] = useState(0);
 
     // Opções para o select de programas
     const [programasOptions, setProgramasOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os programas" }]);
@@ -178,13 +195,23 @@ export default function UsuariosPage() {
             if (plataformaSelecionada && plataformaSelecionada !== 'todos') params.append('plataforma', plataformaSelecionada);
             if (status && status !== 'todos') params.append('status', status);
 
+            // Buscar corridas detalhadas
             const response = await fetch(`/api/dashboard/corridas-por-funcionario?${params.toString()}`);
             if (!response.ok) throw new Error("Erro ao carregar corridas");
             const data = await response.json();
             setCorridasDetalhe(data);
+
+            // Buscar evolução mensal
+            const evolucaoRes = await fetch(`/api/dashboard/evolucao-mensal-funcionario?${params.toString()}`);
+            if (evolucaoRes.ok) {
+                const evolucaoData = await evolucaoRes.json();
+                setEvolucaoMensal(evolucaoData.evolucaoMensal || []);
+                setTotalViagensFunc(evolucaoData.totalViagens || 0);
+                setTotalValorFunc(evolucaoData.totalValor || 0);
+            }
         } catch (error) {
             console.error("Erro ao carregar detalhes:", error);
-            toast.error("Erro ao carregar corridas do funcionário");
+            toast.error("Erro ao carregar dados do funcionário");
         } finally {
             setLoadingDetalhe(false);
         }
@@ -392,9 +419,10 @@ export default function UsuariosPage() {
 
                     {/* Tabs dentro do modal */}
                     <Tabs defaultValue="corridas" className="w-full">
-                        <TabsList className="grid w-full max-w-md grid-cols-2">
+                        <TabsList className="grid w-full max-w-md grid-cols-3">
                             <TabsTrigger value="corridas">Detalhes das Corridas</TabsTrigger>
                             <TabsTrigger value="servicos">Serviços Utilizados</TabsTrigger>
+                            <TabsTrigger value="evolucao">Evolução Mensal</TabsTrigger>
                         </TabsList>
 
                         {/* Aba 1 - Detalhes das Corridas */}
@@ -551,6 +579,171 @@ export default function UsuariosPage() {
                                             ));
                                         })()}
                                     </div>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {/* Aba 3 - Evolução Mensal */}
+                        <TabsContent value="evolucao" className="mt-4">
+                            {loadingDetalhe ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-8 w-8 animate-spin text-[#5D2A1A]" />
+                                    <span className="ml-2 text-gray-600">Carregando evolução...</span>
+                                </div>
+                            ) : evolucaoMensal.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    Nenhum dado de evolução encontrado para este funcionário
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* Cards de resumo */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Card>
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-600">Total de Viagens</p>
+                                                        <p className="text-2xl font-bold text-gray-900">{totalViagensFunc}</p>
+                                                    </div>
+                                                    <div className="p-2 bg-blue-100 rounded-full">
+                                                        <CalendarIcon className="h-5 w-5 text-blue-600" />
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                        <Card>
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-600">Valor Total Gasto</p>
+                                                        <p className="text-2xl font-bold text-green-600">
+                                                            R$ {totalValorFunc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                        </p>
+                                                    </div>
+                                                    <div className="p-2 bg-green-100 rounded-full">
+                                                        <TrendingUp className="h-5 w-5 text-green-600" />
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+
+                                    {/* Gráfico de evolução de gastos */}
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <TrendingUp className="h-5 w-5" />
+                                                Evolução Mensal de Gastos
+                                            </CardTitle>
+                                            <p className="text-sm text-gray-600">
+                                                {funcionarioSelecionado?.nomeCompleto}
+                                            </p>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <ResponsiveContainer width="100%" height={320}>
+                                                <LineChart data={evolucaoMensal}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="mes" />
+                                                    <YAxis
+                                                        yAxisId="left"
+                                                        tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                                                    />
+                                                    <YAxis
+                                                        yAxisId="right"
+                                                        orientation="right"
+                                                        tickFormatter={(value) => value}
+                                                    />
+                                                    <Tooltip
+                                                        formatter={(value, name) => {
+                                                            if (name === 'valor') return `R$ ${Number(value).toLocaleString('pt-BR')}`;
+                                                            return value;
+                                                        }}
+                                                    />
+                                                    <Legend />
+                                                    <Line
+                                                        yAxisId="left"
+                                                        type="monotone"
+                                                        dataKey="valor"
+                                                        stroke="#5D2A1A"
+                                                        strokeWidth={2}
+                                                        dot={{ r: 4 }}
+                                                        name="Valor (R$)"
+                                                    />
+                                                    <Line
+                                                        yAxisId="right"
+                                                        type="monotone"
+                                                        dataKey="viagens"
+                                                        stroke="#2563EB"
+                                                        strokeWidth={2}
+                                                        dot={{ r: 4 }}
+                                                        name="Viagens"
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                            {evolucaoMensal.length === 0 && (
+                                                <p className="text-center text-gray-500 py-8">Nenhum dado encontrado</p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Gráfico de viagens por mês (barras) */}
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <CalendarIcon className="h-5 w-5" />
+                                                Viagens por Mês
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <BarChart data={evolucaoMensal}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="mes" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Legend />
+                                                    <Bar dataKey="viagens" fill="#5D2A1A" name="Viagens" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Tabela resumo por mês */}
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-sm font-medium">
+                                                Resumo por Mês
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr className="border-b">
+                                                            <th className="text-left py-2 px-3 font-medium text-gray-600">Mês</th>
+                                                            <th className="text-right py-2 px-3 font-medium text-gray-600">Viagens</th>
+                                                            <th className="text-right py-2 px-3 font-medium text-gray-600">Valor Total</th>
+                                                            <th className="text-right py-2 px-3 font-medium text-gray-600">Ticket Médio</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {evolucaoMensal.map((item, index) => (
+                                                            <tr key={index} className="border-b hover:bg-gray-50">
+                                                                <td className="py-2 px-3 font-medium">{item.mes}</td>
+                                                                <td className="py-2 px-3 text-right">{item.viagens}</td>
+                                                                <td className="py-2 px-3 text-right">
+                                                                    R$ {item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                                </td>
+                                                                <td className="py-2 px-3 text-right">
+                                                                    R$ {(item.viagens > 0 ? item.valor / item.viagens : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                 </div>
                             )}
                         </TabsContent>
