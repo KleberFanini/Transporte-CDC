@@ -27,14 +27,18 @@ export async function GET(req: NextRequest) {
 
         if (dataInicio && dataInicio !== "") {
             const inicioDate = new Date(dataInicio);
-            inicioDate.setHours(0, 0, 0, 0);
-            where.dataSolicitacao = { gte: inicioDate };
+            if (!isNaN(inicioDate.getTime())) {
+                inicioDate.setHours(0, 0, 0, 0);
+                where.dataSolicitacao = { gte: inicioDate };
+            }
         }
 
         if (dataFim && dataFim !== "") {
             const fimDate = new Date(dataFim);
-            fimDate.setHours(23, 59, 59, 999);
-            where.dataSolicitacao = { ...where.dataSolicitacao, lte: fimDate };
+            if (!isNaN(fimDate.getTime())) {
+                fimDate.setHours(23, 59, 59, 999);
+                where.dataSolicitacao = { ...where.dataSolicitacao, lte: fimDate };
+            }
         }
 
         if (plataforma && plataforma !== "todos") {

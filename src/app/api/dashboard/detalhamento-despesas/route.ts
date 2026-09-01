@@ -28,13 +28,17 @@ export async function GET(request: Request) {
             where.dataSolicitacao = {};
             if (dataInicioStr) {
                 const dataInicio = new Date(dataInicioStr);
-                dataInicio.setHours(0, 0, 0, 0);
-                where.dataSolicitacao.gte = dataInicio;
+                if (!isNaN(dataInicio.getTime())) {
+                    dataInicio.setHours(0, 0, 0, 0);
+                    where.dataSolicitacao.gte = dataInicio;
+                }
             }
             if (dataFimStr) {
                 const dataFim = new Date(dataFimStr);
-                dataFim.setHours(23, 59, 59, 999);
-                where.dataSolicitacao.lte = dataFim;
+                if (!isNaN(dataFim.getTime())) {
+                    dataFim.setHours(23, 59, 59, 999);
+                    where.dataSolicitacao.lte = dataFim;
+                }
             }
         }
 

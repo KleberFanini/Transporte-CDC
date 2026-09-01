@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -21,6 +21,49 @@ interface DateFilterModalProps {
     dataFimInicial: string;
 }
 
+// Verifica se uma data em string (YYYY-MM-DD) é válida no calendário
+const isDateValid = (dateString: string): boolean => {
+    if (!dateString) return true;
+
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return false;
+
+    const ano = parseInt(parts[0], 10);
+    const mes = parseInt(parts[1], 10);
+    const dia = parseInt(parts[2], 10);
+
+    if (isNaN(ano) || isNaN(mes) || isNaN(dia)) return false;
+
+    // Garante que o ano seja válido (ex: evita ano 0002 enquanto digita)
+    if (ano < 1900 || ano > 2099) return false;
+    if (mes < 1 || mes > 12) return false;
+    if (dia < 1 || dia > 31) return false;
+
+    const testDate = new Date(ano, mes - 1, dia);
+    return (
+        testDate.getFullYear() === ano &&
+        testDate.getMonth() === mes - 1 &&
+        testDate.getDate() === dia
+    );
+};
+
+// Converte DD/MM/YYYY para YYYY-MM-DD
+const parseDateString = (value: string): string => {
+    if (!value) return value;
+    if (value.includes('-')) return value;
+
+    if (value.includes('/')) {
+        const parts = value.split('/');
+        if (parts.length === 3) {
+            const dia = parts[0].padStart(2, '0');
+            const mes = parts[1].padStart(2, '0');
+            const ano = parts[2];
+            return `${ano}-${mes}-${dia}`;
+        }
+    }
+    return value;
+};
+
 export function DateFilterModal({
     open,
     onOpenChange,
@@ -30,54 +73,98 @@ export function DateFilterModal({
 }: DateFilterModalProps) {
     const [dataInicio, setDataInicio] = useState(dataInicioInicial);
     const [dataFim, setDataFim] = useState(dataFimInicial);
-    const [erro, setErro] = useState("");
 
-    // Data máxima = hoje
+    // Estados independentes para erros específicos de cada campo e erros gerais
+    const [erroInicio, setErroInicio] = useState("");
+    const [erroFim, setErroFim] = useState("");
+    const [erroGeral, setErroGeral] = useState("");
+
     const hoje = new Date().toISOString().split('T')[0];
-
-    // Anos disponíveis (2023 até ano atual)
     const anoAtual = new Date().getFullYear();
     const anos = Array.from({ length: anoAtual - 2022 }, (_, i) => 2023 + i);
 
+    const limparErros = () => {
+        setErroInicio("");
+        setErroFim("");
+        setErroGeral("");
+    };
+
+    useEffect(() => {
+        if (open) {
+            setDataInicio(dataInicioInicial);
+            setDataFim(dataFimInicial);
+            limparErros();
+        }
+    }, [open, dataInicioInicial, dataFimInicial]);
+
+    const validarDatas = (inicio: string, fim: string): boolean => {
+        let msgInicio = "";
+        let msgFim = "";
+        let msgGeral = "";
+        let ehValido = true;
+
+        // Validar Data de Início
+        if (inicio) {
+            const inicioParsed = parseDateString(inicio);
+            if (!isDateValid(inicioParsed)) {
+                msgInicio = "A data informada não consta no calendário.";
+                ehValido = false;
+            } else if (inicioParsed > hoje) {
+                msgInicio = "Data de início não pode ser futura.";
+                ehValido = false;
+            }
+        }
+
+        // Validar Data de Fim
+        if (fim) {
+            const fimParsed = parseDateString(fim);
+            if (!isDateValid(fimParsed)) {
+                msgFim = "A data informada não consta no calendário.";
+                ehValido = false;
+            } else if (fimParsed > hoje) {
+                msgFim = "Data de fim não pode ser futura.";
+                ehValido = false;
+            }
+        }
+
+        // Validar intervalo
+        if (ehValido && inicio && fim) {
+            const inicioParsed = parseDateString(inicio);
+            const fimParsed = parseDateString(fim);
+            if (inicioParsed > fimParsed) {
+                msgGeral = "Data de início não pode ser maior que data de fim.";
+                ehValido = false;
+            }
+        }
+
+        setErroInicio(msgInicio);
+        setErroFim(msgFim);
+        setErroGeral(msgGeral);
+
+        return ehValido;
+    };
+
     const handleDataInicioChange = (value: string) => {
         setDataInicio(value);
-        setErro("");
-
-        if (value && value > hoje) {
-            setErro("Data de início não pode ser futura");
-        }
-
-        if (value && dataFim && value > dataFim) {
-            setErro("Data de início não pode ser maior que data de fim");
-        }
+        validarDatas(value, dataFim);
     };
 
     const handleDataFimChange = (value: string) => {
         setDataFim(value);
-        setErro("");
-
-        if (value && value > hoje) {
-            setErro("Data de fim não pode ser futura");
-        }
-
-        if (value && dataInicio && value < dataInicio) {
-            setErro("Data de fim não pode ser menor que data de início");
-        }
+        validarDatas(dataInicio, value);
     };
 
     const handleYearFilter = (ano: number) => {
-        const inicio = `${ano}-01-01`;
-        const fim = `${ano}-12-31`;
-
-        // Validar se o ano é futuro
         if (ano > anoAtual) {
-            setErro("Não é possível filtrar por um ano futuro");
+            setErroGeral("Não é possível filtrar por um ano futuro.");
             return;
         }
 
+        const inicio = `${ano}-01-01`;
+        const fim = `${ano}-12-31`;
         setDataInicio(inicio);
         setDataFim(fim);
-        setErro("");
+        validarDatas(inicio, fim);
     };
 
     const handleCurrentYear = () => {
@@ -85,7 +172,7 @@ export function DateFilterModal({
         const fim = hoje;
         setDataInicio(inicio);
         setDataFim(fim);
-        setErro("");
+        validarDatas(inicio, fim);
     };
 
     const handleCurrentMonth = () => {
@@ -94,13 +181,12 @@ export function DateFilterModal({
         const mes = String(hojeDate.getMonth() + 1).padStart(2, '0');
         const inicio = `${ano}-${mes}-01`;
 
-        // Último dia do mês atual
         const ultimoDia = new Date(ano, hojeDate.getMonth() + 1, 0).getDate();
-        const fim = `${ano}-${mes}-${ultimoDia}`;
+        const fim = `${ano}-${mes}-${String(ultimoDia).padStart(2, '0')}`;
 
         setDataInicio(inicio);
         setDataFim(fim);
-        setErro("");
+        validarDatas(inicio, fim);
     };
 
     const handleLast30Days = () => {
@@ -113,42 +199,31 @@ export function DateFilterModal({
 
         setDataInicio(inicio);
         setDataFim(fim);
-        setErro("");
+        validarDatas(inicio, fim);
     };
 
     const handleApply = () => {
-        if (dataInicio && dataInicio > hoje) {
-            setErro("Data de início não pode ser futura");
-            return;
-        }
-
-        if (dataFim && dataFim > hoje) {
-            setErro("Data de fim não pode ser futura");
-            return;
-        }
-
-        if (dataInicio && dataFim && dataInicio > dataFim) {
-            setErro("Data de início não pode ser maior que data de fim");
-            return;
-        }
+        if (!validarDatas(dataInicio, dataFim)) return;
 
         onApply(dataInicio, dataFim);
         onOpenChange(false);
-        setErro("");
+        limparErros();
     };
 
     const handleCancel = () => {
         setDataInicio(dataInicioInicial);
         setDataFim(dataFimInicial);
-        setErro("");
+        limparErros();
         onOpenChange(false);
     };
 
     const handleReset = () => {
         setDataInicio("");
         setDataFim("");
-        setErro("");
+        limparErros();
     };
+
+    const isApplyDisabled = !!erroInicio || !!erroFim || !!erroGeral;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,36 +301,58 @@ export function DateFilterModal({
                 </div>
 
                 <div className="grid gap-4 py-2">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="dataInicio" className="text-right">
-                            Data Início
-                        </Label>
-                        <Input
-                            id="dataInicio"
-                            type="date"
-                            value={dataInicio}
-                            onChange={(e) => handleDataInicioChange(e.target.value)}
-                            max={hoje}
-                            className="col-span-3"
-                        />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="dataFim" className="text-right">
-                            Data Fim
-                        </Label>
-                        <Input
-                            id="dataFim"
-                            type="date"
-                            value={dataFim}
-                            onChange={(e) => handleDataFimChange(e.target.value)}
-                            max={hoje}
-                            className="col-span-3"
-                        />
+                    {/* Campo Data Início */}
+                    <div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="dataInicio" className="text-right">
+                                Data Início
+                            </Label>
+                            <Input
+                                id="dataInicio"
+                                type="date"
+                                value={dataInicio}
+                                onChange={(e) => handleDataInicioChange(e.target.value)}
+                                max={hoje}
+                                className="col-span-3"
+                            />
+                        </div>
+                        {erroInicio && (
+                            <div className="grid grid-cols-4 gap-4 mt-1">
+                                <span className="col-start-2 col-span-3 text-red-500 text-xs font-medium">
+                                    ⚠️ {erroInicio}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
-                    {erro && (
-                        <div className="text-red-500 text-sm text-center">
-                            {erro}
+                    {/* Campo Data Fim */}
+                    <div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="dataFim" className="text-right">
+                                Data Fim
+                            </Label>
+                            <Input
+                                id="dataFim"
+                                type="date"
+                                value={dataFim}
+                                onChange={(e) => handleDataFimChange(e.target.value)}
+                                max={hoje}
+                                className="col-span-3"
+                            />
+                        </div>
+                        {erroFim && (
+                            <div className="grid grid-cols-4 gap-4 mt-1">
+                                <span className="col-start-2 col-span-3 text-red-500 text-xs font-medium">
+                                    ⚠️ {erroFim}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Mensagem de Erro Geral (Ex: Início > Fim) */}
+                    {erroGeral && (
+                        <div className="text-red-500 text-sm text-center font-medium mt-2">
+                            ⚠️ {erroGeral}
                         </div>
                     )}
                 </div>
@@ -282,7 +379,7 @@ export function DateFilterModal({
                             type="button"
                             onClick={handleApply}
                             className="bg-[#5D2A1A] hover:bg-[#4A2214] text-white"
-                            disabled={!!erro}
+                            disabled={isApplyDisabled}
                         >
                             Aplicar Filtro
                         </Button>

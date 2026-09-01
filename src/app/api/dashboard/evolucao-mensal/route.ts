@@ -28,14 +28,18 @@ export async function GET(request: Request) {
 
         if (dataInicioStr) {
             const dataInicio = new Date(dataInicioStr);
-            dataInicio.setHours(0, 0, 0, 0);
-            where.dataSolicitacao = { ...where.dataSolicitacao, gte: dataInicio };
+            if (!isNaN(dataInicio.getTime())) {
+                dataInicio.setHours(0, 0, 0, 0);
+                where.dataSolicitacao = { ...where.dataSolicitacao, gte: dataInicio };
+            }
         }
 
         if (dataFimStr) {
             const dataFim = new Date(dataFimStr);
-            dataFim.setHours(23, 59, 59, 999);
-            where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            if (!isNaN(dataFim.getTime())) {
+                dataFim.setHours(23, 59, 59, 999);
+                where.dataSolicitacao = { ...where.dataSolicitacao, lte: dataFim };
+            }
         }
 
         const corridas = await prisma.corrida.findMany({
