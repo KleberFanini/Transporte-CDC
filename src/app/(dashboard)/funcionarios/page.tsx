@@ -104,6 +104,7 @@ export default function UsuariosPage() {
     const [evolucaoMensal, setEvolucaoMensal] = useState<any[]>([]);
     const [totalViagensFunc, setTotalViagensFunc] = useState(0);
     const [totalValorFunc, setTotalValorFunc] = useState(0);
+    const [agrupamento, setAgrupamento] = useState<'dia' | 'mes'>('mes');
 
     // Opções para o select de programas
     const [programasOptions, setProgramasOptions] = useState<SelectOption[]>([{ value: "todos", label: "Todos os programas" }]);
@@ -208,6 +209,7 @@ export default function UsuariosPage() {
                 setEvolucaoMensal(evolucaoData.evolucaoMensal || []);
                 setTotalViagensFunc(evolucaoData.totalViagens || 0);
                 setTotalValorFunc(evolucaoData.totalValor || 0);
+                setAgrupamento(evolucaoData.agrupamento || 'mes');
             }
         } catch (error) {
             console.error("Erro ao carregar detalhes:", error);
@@ -633,17 +635,23 @@ export default function UsuariosPage() {
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2">
                                                 <TrendingUp className="h-5 w-5" />
-                                                Evolução Mensal de Gastos
+                                                {agrupamento === 'dia' ? 'Evolução Diária de Gastos' : 'Evolução Mensal de Gastos'}
                                             </CardTitle>
                                             <p className="text-sm text-gray-600">
                                                 {funcionarioSelecionado?.nomeCompleto}
+                                                {agrupamento === 'dia' && ' - Detalhamento por dia do mês'}
                                             </p>
                                         </CardHeader>
                                         <CardContent>
                                             <ResponsiveContainer width="100%" height={320}>
                                                 <LineChart data={evolucaoMensal}>
                                                     <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="mes" />
+                                                    <XAxis
+                                                        dataKey={agrupamento === 'dia' ? 'dia' : 'mes'}
+                                                        angle={agrupamento === 'dia' ? -45 : 0}
+                                                        textAnchor={agrupamento === 'dia' ? 'end' : 'middle'}
+                                                        height={agrupamento === 'dia' ? 60 : 30}
+                                                    />
                                                     <YAxis
                                                         yAxisId="left"
                                                         tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
@@ -686,62 +694,30 @@ export default function UsuariosPage() {
                                         </CardContent>
                                     </Card>
 
-                                    {/* Gráfico de viagens por mês (barras) */}
+                                    {/* Gráfico de barras */}
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2">
                                                 <CalendarIcon className="h-5 w-5" />
-                                                Viagens por Mês
+                                                {agrupamento === 'dia' ? 'Viagens por Dia' : 'Viagens por Mês'}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
                                             <ResponsiveContainer width="100%" height={300}>
                                                 <BarChart data={evolucaoMensal}>
                                                     <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="mes" />
+                                                    <XAxis
+                                                        dataKey={agrupamento === 'dia' ? 'dia' : 'mes'}
+                                                        angle={agrupamento === 'dia' ? -45 : 0}
+                                                        textAnchor={agrupamento === 'dia' ? 'end' : 'middle'}
+                                                        height={agrupamento === 'dia' ? 60 : 30}
+                                                    />
                                                     <YAxis />
                                                     <Tooltip />
                                                     <Legend />
                                                     <Bar dataKey="viagens" fill="#5D2A1A" name="Viagens" />
                                                 </BarChart>
                                             </ResponsiveContainer>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Tabela resumo por mês */}
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-sm font-medium">
-                                                Resumo por Mês
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-sm">
-                                                    <thead>
-                                                        <tr className="border-b">
-                                                            <th className="text-left py-2 px-3 font-medium text-gray-600">Mês</th>
-                                                            <th className="text-right py-2 px-3 font-medium text-gray-600">Viagens</th>
-                                                            <th className="text-right py-2 px-3 font-medium text-gray-600">Valor Total</th>
-                                                            <th className="text-right py-2 px-3 font-medium text-gray-600">Ticket Médio</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {evolucaoMensal.map((item, index) => (
-                                                            <tr key={index} className="border-b hover:bg-gray-50">
-                                                                <td className="py-2 px-3 font-medium">{item.mes}</td>
-                                                                <td className="py-2 px-3 text-right">{item.viagens}</td>
-                                                                <td className="py-2 px-3 text-right">
-                                                                    R$ {item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                                </td>
-                                                                <td className="py-2 px-3 text-right">
-                                                                    R$ {(item.viagens > 0 ? item.valor / item.viagens : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
